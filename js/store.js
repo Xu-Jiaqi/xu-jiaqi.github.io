@@ -1,86 +1,60 @@
-// GitHub Gist 持久化存储
+// GitHub Gist 持久化存储（公开 Gist，读取无需 Token）
 
-const GIST_ID_KEY = 'blog_gist_id';
+const GIST_ID = 'c54f62bb3a10ff3d8dc8689d06b4ff20'; // 公开 Gist
 const TOKEN_KEY = 'gh_token';
-const OWNER = 'Xu-Jiaqi';
 
-// 获取 token
+// 获取 token（写入时才需要）
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-// 异步请求封装
-async function ghRequest(method, url, body = null) {
-  const token = getToken();
-  if (!token) throw new Error('未设置 GitHub Token');
+// 读取公开 Gist（无需认证）
+async function fetchPublicGist() {
+  const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+  if (!response.ok) throw new Error('获取数据失败');
+  return response.json();
+}
 
-  const options = {
-    method,
+// 写入 Gist（需要 Token）
+async function patchGist(files) {
+  const token = getToken();
+  if (!token) throw new Error('需要 GitHub Token 才能保存');
+
+  const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json'
-    }
-  };
+    },
+    body: JSON.stringify({ files })
+  });
 
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(url, options);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(err.message || '请求失败');
+    throw new Error(err.message || '保存失败');
   }
-
   return response.json();
 }
 
-// 创建 Gist
-async function createGist() {
-  const gist = await ghRequest('POST', 'https://api.github.com/gists', {
-    description: 'Xu-Jiaqi Blog Data',
-    public: false,
-    files: {
-      'thoughts.json': { content: JSON.stringify({ thoughts: [] }, null, 2) },
-      'works.json': { content: JSON.stringify({ works: [] }, null, 2) }
-    }
-  });
-  localStorage.setItem(GIST_ID_KEY, gist.id);
-  return gist;
-}
-
-// 获取 Gist
-async function getGist() {
-  let gistId = localStorage.getItem(GIST_ID_KEY);
-  if (!gistId) {
-    const gist = await createGist();
-    return gist;
-  }
-  try {
-    return await ghRequest('GET', `https://api.github.com/gists/${gistId}`);
-  } catch (e) {
-    // Gist 不存在或无权访问，创建新的
-    localStorage.removeItem(GIST_ID_KEY);
-    return createGist();
-  }
-}
-
-// 更新 Gist
-async function updateGist(files) {
-  const gistId = localStorage.getItem(GIST_ID_KEY);
-  if (!gistId) throw new Error('Gist 未初始化');
-
-  return ghRequest('PATCH', `https://api.github.com/gists/${gistId}`, { files });
-}
-
-// 检查 token 是否有效
+// 检查 token 是否有效（写入前检查）
 async function checkToken() {
+  const token = getToken();
+  if (!token) return false;
   try {
-    await ghRequest('GET', `https://api.github.com/repos/${OWNER}`);
-    return true;
-  } catch (e) {
+    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ description: 'test' })
+    });
+    return response.ok;
+  } catch {
     return false;
   }
 }
@@ -88,7 +62,7 @@ async function checkToken() {
 // ========== Thoughts (日有所思) ==========
 
 async function loadThoughts() {
-  const gist = await getGist();
+  const gist = await fetchPublicGist();
   const file = gist.files['thoughts.json'];
   if (!file) return [];
   return JSON.parse(file.content).thoughts || [];
@@ -101,7 +75,7 @@ async function saveThought(content) {
     content,
     time: new Date().toISOString()
   });
-  await updateGist({
+  await patchGist({
     'thoughts.json': { content: JSON.stringify({ thoughts }, null, 2) }
   });
   return thoughts[0];
@@ -110,7 +84,7 @@ async function saveThought(content) {
 // ========== Works (作品集) ==========
 
 async function loadWorks() {
-  const gist = await getGist();
+  const gist = await fetchPublicGist();
   const file = gist.files['works.json'];
   if (!file) return [];
   return JSON.parse(file.content).works || [];
@@ -124,7 +98,7 @@ async function saveWork(title, content) {
     content,
     time: new Date().toISOString()
   });
-  await updateGist({
+  await patchGist({
     'works.json': { content: JSON.stringify({ works }, null, 2) }
   });
   return works[0];
