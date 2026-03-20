@@ -5,7 +5,8 @@
   let activeIndex = -1;
   const converter = new showdown.Converter();
 
-  const listEl = document.getElementById('article-list');
+  const paperList = document.getElementById('paper-list');
+  const noteList = document.getElementById('note-list');
   const contentEl = document.getElementById('content');
 
   function formatDate(iso) {
@@ -21,19 +22,25 @@
     return div.innerHTML;
   }
 
-  function renderList() {
-    if (works.length === 0) {
-      listEl.innerHTML = '<li class="empty-state">还没有作品 / No works yet</li>';
-      return;
-    }
+  function renderLists() {
+    const renderOne = (listEl) => {
+      if (works.length === 0) {
+        listEl.innerHTML = '<li class="empty-state">暂无 / None</li>';
+        return;
+      }
+      listEl.innerHTML = works.map((w, i) =>
+        `<li data-i="${i}">${esc(w.title || '无标题')}</li>`
+      ).join('');
+    };
 
-    listEl.innerHTML = works.map((w, i) =>
-      `<li data-i="${i}">${esc(w.title || '无标题')}</li>`
-    ).join('');
+    renderOne(paperList);
+    renderOne(noteList);
 
-    listEl.querySelectorAll('li[data-i]').forEach(li => {
-      li.addEventListener('click', () => {
-        showWork(+li.dataset.i);
+    [paperList, noteList].forEach(listEl => {
+      listEl.querySelectorAll('li[data-i]').forEach(li => {
+        li.addEventListener('click', () => {
+          showWork(+li.dataset.i);
+        });
       });
     });
   }
@@ -57,22 +64,23 @@
       contentEl.innerHTML = `<div class="error-state">渲染失败：${e.message}</div>`;
     }
 
-    listEl.querySelectorAll('li[data-i]').forEach((li, idx) => {
-      li.classList.toggle('active', idx === i);
+    [paperList, noteList].forEach(listEl => {
+      listEl.querySelectorAll('li[data-i]').forEach((li, idx) => {
+        li.classList.toggle('active', idx === i);
+      });
     });
   }
 
   (async function init() {
     try {
       works = await GitHubStore.loadWorks();
-      console.log('Loaded works:', works);
-      renderList();
+      renderLists();
       if (works.length > 0) {
         showWork(0);
       }
     } catch (err) {
       console.error('Load error:', err);
-      listEl.innerHTML = `<li class="error-state">加载失败：${err.message} / Load failed</li>`;
+      paperList.innerHTML = `<li class="error-state">加载失败 / Load failed</li>`;
     }
   })();
 })();
