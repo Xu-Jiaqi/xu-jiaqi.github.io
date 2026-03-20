@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日有所思 - Xu-Jiaqi</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Xu-Jiaqi</a>
+      <div class="nav-links">
+        <a href="thoughts.html" class="active">日有所思</a>
+        <a href="works.html">作品集</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="page-header">
+      <h1>日有所思</h1>
+      <p>简短的思考与灵感</p>
+    </section>
+
+    <section class="thoughts-list" id="thoughts">
+      <!-- Thoughts will be loaded here -->
+    </section>
+
+    <section class="add-thought">
+      <h3>记录新想法</h3>
+      <form id="thought-form">
+        <textarea id="thought-input" placeholder="此刻在想什么..." rows="3"></textarea>
+        <button type="submit">保存</button>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Xu-Jiaqi</p>
+  </footer>
+
+  <script src="js/thoughts.js"></script>
+</body>
+</html>
