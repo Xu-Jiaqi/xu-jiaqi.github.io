@@ -1,8 +1,6 @@
 // 日有所思 - Thoughts Page
 
-const STORAGE_KEY = 'blog_thoughts';
-
-// 检查是否已配置 GitHub Token
+// 检查 GitHub 配置
 async function checkGitHubConfig() {
   const token = localStorage.getItem('gh_token');
   if (!token) {
@@ -28,7 +26,7 @@ function showSetupPrompt() {
         <button type="submit" style="margin-top: 1rem;">确认</button>
       </form>
       <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
-        <a href="https://github.com/settings/tokens/new?scopes=repo&description=blog-data" target="_blank">创建 Token →</a>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=blog-data" target="_blank">创建 Token →</a>
       </p>
     </div>
   `;
@@ -48,9 +46,9 @@ function showSetupPrompt() {
   });
 }
 
-// Format date
-function formatDate(timestamp) {
-  const date = new Date(timestamp);
+// 格式化日期
+function formatDate(isoString) {
+  const date = new Date(isoString);
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -60,11 +58,18 @@ function formatDate(timestamp) {
   });
 }
 
-// Render thoughts list
+// 转义 HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 渲染列表
 function renderThoughts(thoughts) {
   const container = document.getElementById('thoughts');
 
-  if (thoughts.length === 0) {
+  if (!thoughts || thoughts.length === 0) {
     container.innerHTML = '<div class="empty-state">还没有记录，记录你的第一个想法吧</div>';
     return;
   }
@@ -77,14 +82,7 @@ function renderThoughts(thoughts) {
   `).join('');
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Handle form submit
+// 表单提交
 document.getElementById('thought-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = document.getElementById('thought-input');
@@ -104,6 +102,7 @@ document.getElementById('thought-form').addEventListener('submit', async (e) => 
     renderThoughts(thoughts);
   } catch (err) {
     alert('保存失败: ' + err.message);
+    console.error(err);
   } finally {
     const btn = e.target.querySelector('button');
     btn.disabled = false;
@@ -111,7 +110,7 @@ document.getElementById('thought-form').addEventListener('submit', async (e) => 
   }
 });
 
-// Initial load
+// 初始化
 (async () => {
   const configured = await checkGitHubConfig();
   if (configured) {
@@ -119,8 +118,9 @@ document.getElementById('thought-form').addEventListener('submit', async (e) => 
       const thoughts = await GitHubStore.loadThoughts();
       renderThoughts(thoughts);
     } catch (err) {
+      console.error('加载失败:', err);
       const container = document.getElementById('thoughts');
-      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}</div>`;
+      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}<br><small>${err.stack}</small></div>`;
     }
   }
 })();

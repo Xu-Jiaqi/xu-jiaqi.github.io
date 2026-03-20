@@ -1,6 +1,6 @@
 // 作品集 - Works Page
 
-// 检查是否已配置 GitHub Token
+// 检查 GitHub 配置
 async function checkGitHubConfig() {
   const token = localStorage.getItem('gh_token');
   if (!token) {
@@ -26,7 +26,7 @@ function showSetupPrompt() {
         <button type="submit" style="margin-top: 1rem;">确认</button>
       </form>
       <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
-        <a href="https://github.com/settings/tokens/new?scopes=repo&description=blog-data" target="_blank">创建 Token →</a>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=blog-data" target="_blank">创建 Token →</a>
       </p>
     </div>
   `;
@@ -46,9 +46,9 @@ function showSetupPrompt() {
   });
 }
 
-// Format date
-function formatDate(timestamp) {
-  const date = new Date(timestamp);
+// 格式化日期
+function formatDate(isoString) {
+  const date = new Date(isoString);
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -56,11 +56,18 @@ function formatDate(timestamp) {
   });
 }
 
-// Render works list
+// 转义 HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 渲染列表
 function renderWorks(works) {
   const container = document.getElementById('works');
 
-  if (works.length === 0) {
+  if (!works || works.length === 0) {
     container.innerHTML = '<div class="empty-state">还没有作品，发布你的第一篇长文吧</div>';
     return;
   }
@@ -74,14 +81,7 @@ function renderWorks(works) {
   `).join('');
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Handle form submit
+// 表单提交
 document.getElementById('work-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const titleInput = document.getElementById('work-title');
@@ -104,6 +104,7 @@ document.getElementById('work-form').addEventListener('submit', async (e) => {
     renderWorks(works);
   } catch (err) {
     alert('发布失败: ' + err.message);
+    console.error(err);
   } finally {
     const btn = e.target.querySelector('button');
     btn.disabled = false;
@@ -111,7 +112,7 @@ document.getElementById('work-form').addEventListener('submit', async (e) => {
   }
 });
 
-// Initial load
+// 初始化
 (async () => {
   const configured = await checkGitHubConfig();
   if (configured) {
@@ -119,8 +120,9 @@ document.getElementById('work-form').addEventListener('submit', async (e) => {
       const works = await GitHubStore.loadWorks();
       renderWorks(works);
     } catch (err) {
+      console.error('加载失败:', err);
       const container = document.getElementById('works');
-      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}</div>`;
+      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}<br><small>${err.stack}</small></div>`;
     }
   }
 })();
