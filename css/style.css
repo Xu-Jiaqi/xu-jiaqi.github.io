@@ -110,6 +110,16 @@ main {
   color: var(--text-light);
 }
 
+/* ==================== Section Title ==================== */
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
 /* ==================== Profile Card ==================== */
 .profile-card {
   display: flex;
