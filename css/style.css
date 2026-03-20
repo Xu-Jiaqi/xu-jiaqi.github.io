@@ -170,9 +170,12 @@ main {
 
 .profile-links {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
   min-width: 0;
+}
+
+.profile-links + .profile-links {
+  margin-top: 0.25rem;
 }
 
 .profile-links a {
