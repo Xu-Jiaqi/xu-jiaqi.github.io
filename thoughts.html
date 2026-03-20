@@ -23,22 +23,23 @@
       <p>简短的思考与灵感</p>
     </section>
 
-    <section class="carousel-container">
-      <div class="carousel" id="carousel">
-        <!-- Cards will be loaded here -->
+    <section class="carousel-wrapper">
+      <div class="carousel-track" id="track">
+        <!-- Cards rendered by JS -->
       </div>
-      <div class="carousel-dots" id="carousel-dots"></div>
-      <div class="carousel-nav">
-        <button class="carousel-btn prev" id="prev-btn">‹</button>
-        <button class="carousel-btn next" id="next-btn">›</button>
+
+      <div class="carousel-controls">
+        <button class="carousel-arrow prev" id="prev">‹</button>
+        <div class="carousel-dots" id="dots"></div>
+        <button class="carousel-arrow next" id="next">›</button>
       </div>
     </section>
 
-    <section class="add-thought">
+    <section class="add-section">
       <h3>记录新想法</h3>
-      <form id="thought-form">
-        <textarea id="thought-input" placeholder="此刻在想什么..." rows="3"></textarea>
-        <button type="submit">保存</button>
+      <form id="add-form">
+        <textarea id="content-input" placeholder="此刻在想什么..." rows="4"></textarea>
+        <button type="submit" id="submit-btn">保存</button>
       </form>
     </section>
   </main>

@@ -1,203 +1,145 @@
-// 日有所思 - 自动切换卡片轮播
+// 日有所思 - 轮播卡片
 
-let thoughtsData = [];
-let currentIndex = 0;
-let autoPlayInterval = null;
+(function() {
+  let thoughts = [];
+  let current = 0;
+  let timer = null;
 
-// 检查 GitHub 配置
-async function checkGitHubConfig() {
-  const token = localStorage.getItem('gh_token');
-  if (!token) {
-    showSetupPrompt();
-    return false;
+  const track = document.getElementById('track');
+  const dots = document.getElementById('dots');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const form = document.getElementById('add-form');
+  const input = document.getElementById('content-input');
+  const submitBtn = document.getElementById('submit-btn');
+
+  // 格式化日期
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('zh-CN', {
+      year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
   }
-  const valid = await GitHubStore.checkToken();
-  if (!valid) {
-    showSetupPrompt();
-    return false;
+
+  // 转义 HTML
+  function esc(html) {
+    const div = document.createElement('div');
+    div.textContent = html;
+    return div.innerHTML;
   }
-  return true;
-}
 
-function showSetupPrompt() {
-  const container = document.getElementById('carousel');
-  container.innerHTML = `
-    <div class="carousel-card">
-      <div class="setup-prompt">
-        <h3>需要配置 GitHub Token</h3>
-        <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
-        <form id="token-form">
-          <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
-          <button type="submit" style="margin-top: 1rem;">确认</button>
-        </form>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('token-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const token = document.getElementById('token-input').value.trim();
-    if (token) {
-      localStorage.setItem('gh_token', token);
-      const valid = await GitHubStore.checkToken();
-      if (valid) {
-        location.reload();
-      } else {
-        alert('Token 无效，请检查后重试');
-      }
+  // 渲染轮播
+  function render() {
+    if (thoughts.length === 0) {
+      track.innerHTML = '<div class="loading">还没有记录，记录你的第一个想法吧</div>';
+      dots.innerHTML = '';
+      return;
     }
-  });
-}
 
-// 格式化日期
-function formatDate(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-// 转义 HTML
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// 渲染轮播卡片
-function renderCarousel() {
-  const carousel = document.getElementById('carousel');
-  const dotsContainer = document.getElementById('carousel-dots');
-
-  if (!thoughtsData || thoughtsData.length === 0) {
-    carousel.innerHTML = `
-      <div class="carousel-card">
-        <div class="empty-state">还没有记录，记录你的第一个想法吧</div>
+    track.innerHTML = `
+      <div class="carousel-slides" id="slides">
+        ${thoughts.map(t => `
+          <div class="carousel-slide">
+            <div class="carousel-time">${formatDate(t.time)}</div>
+            <div class="carousel-content">${esc(t.content)}</div>
+          </div>
+        `).join('')}
       </div>
     `;
-    dotsContainer.innerHTML = '';
-    return;
-  }
 
-  // Render cards
-  carousel.innerHTML = thoughtsData.map((thought, i) => `
-    <div class="carousel-card">
-      <div class="thought-time">${formatDate(thought.time)}</div>
-      <div class="thought-content">${escapeHtml(thought.content)}</div>
-    </div>
-  `).join('');
+    dots.innerHTML = thoughts.map((_, i) =>
+      `<div class="carousel-dot ${i === 0 ? 'active' : ''}" data-i="${i}"></div>`
+    ).join('');
 
-  // Render dots
-  dotsContainer.innerHTML = thoughtsData.map((_, i) => `
-    <div class="carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>
-  `).join('');
-
-  // Add dot click handlers
-  dotsContainer.querySelectorAll('.carousel-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      goToSlide(parseInt(dot.dataset.index));
+    // 绑定圆点点击
+    dots.querySelectorAll('.carousel-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        goTo(+dot.dataset.i);
+      });
     });
+
+    updateSlide();
+  }
+
+  // 更新轮播位置
+  function updateSlide() {
+    const slides = document.getElementById('slides');
+    if (!slides) return;
+    slides.style.transform = `translateX(-${current * 100}%)`;
+
+    dots.querySelectorAll('.carousel-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+  }
+
+  // 跳转到某页
+  function goTo(i) {
+    current = i;
+    updateSlide();
+    resetTimer();
+  }
+
+  // 自动播放
+  function startTimer() {
+    if (thoughts.length <= 1) return;
+    timer = setInterval(() => {
+      current = (current + 1) % thoughts.length;
+      updateSlide();
+    }, 5000);
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    startTimer();
+  }
+
+  // 上一页
+  prevBtn.addEventListener('click', () => {
+    current = (current - 1 + thoughts.length) % thoughts.length;
+    updateSlide();
+    resetTimer();
   });
 
-  updateCarousel();
-}
-
-// 更新轮播位置
-function updateCarousel() {
-  const carousel = document.getElementById('carousel');
-  const dots = document.querySelectorAll('.carousel-dot');
-
-  carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
-
-  dots.forEach((dot, i) => {
-    dot.classList.toggle('active', i === currentIndex);
+  // 下一页
+  nextBtn.addEventListener('click', () => {
+    current = (current + 1) % thoughts.length;
+    updateSlide();
+    resetTimer();
   });
-}
 
-// 切换到指定卡片
-function goToSlide(index) {
-  currentIndex = index;
-  updateCarousel();
-  resetAutoPlay();
-}
+  // 提交
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = input.value.trim();
+    if (!content) return;
 
-// 自动播放
-function startAutoPlay() {
-  if (thoughtsData.length <= 1) return;
-  autoPlayInterval = setInterval(() => {
-    currentIndex = (currentIndex + 1) % thoughtsData.length;
-    updateCarousel();
-  }, 5000); // 每5秒切换
-}
+    submitBtn.disabled = true;
+    submitBtn.textContent = '保存中...';
 
-function resetAutoPlay() {
-  if (autoPlayInterval) {
-    clearInterval(autoPlayInterval);
-  }
-  startAutoPlay();
-}
-
-// 手动切换
-document.getElementById('prev-btn').addEventListener('click', () => {
-  currentIndex = (currentIndex - 1 + thoughtsData.length) % thoughtsData.length;
-  updateCarousel();
-  resetAutoPlay();
-});
-
-document.getElementById('next-btn').addEventListener('click', () => {
-  currentIndex = (currentIndex + 1) % thoughtsData.length;
-  updateCarousel();
-  resetAutoPlay();
-});
-
-// 表单提交
-document.getElementById('thought-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const input = document.getElementById('thought-input');
-  const content = input.value.trim();
-
-  if (!content) return;
-
-  try {
-    const btn = e.target.querySelector('button');
-    btn.disabled = true;
-    btn.textContent = '保存中...';
-
-    await GitHubStore.saveThought(content);
-    input.value = '';
-
-    thoughtsData = await GitHubStore.loadThoughts();
-    currentIndex = 0;
-    renderCarousel();
-    startAutoPlay();
-  } catch (err) {
-    alert('保存失败: ' + err.message);
-  } finally {
-    const btn = e.target.querySelector('button');
-    btn.disabled = false;
-    btn.textContent = '保存';
-  }
-});
-
-// 初始化
-(async () => {
-  const configured = await checkGitHubConfig();
-  if (configured) {
     try {
-      thoughtsData = await GitHubStore.loadThoughts();
-      renderCarousel();
-      startAutoPlay();
+      await GitHubStore.saveThought(content);
+      input.value = '';
+      thoughts = await GitHubStore.loadThoughts();
+      current = 0;
+      render();
+      startTimer();
     } catch (err) {
-      const carousel = document.getElementById('carousel');
-      carousel.innerHTML = `
-        <div class="carousel-card">
-          <div class="empty-state">加载失败: ${err.message}</div>
-        </div>
-      `;
+      alert('保存失败：' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '保存';
     }
-  }
+  });
+
+  // 初始化
+  (async function init() {
+    try {
+      thoughts = await GitHubStore.loadThoughts();
+      render();
+      startTimer();
+    } catch (err) {
+      track.innerHTML = `<div class="error-state">加载失败：${err.message}</div>`;
+    }
+  })();
 })();

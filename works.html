@@ -20,23 +20,24 @@
   <main class="works-layout">
     <aside class="works-sidebar">
       <h3>文章列表</h3>
-      <ul class="works-list" id="works-list">
-        <!-- List items will be loaded here -->
+      <ul class="article-list" id="article-list">
+        <!-- Rendered by JS -->
       </ul>
     </aside>
-    <article class="works-content" id="works-content">
-      <div class="works-empty">
+
+    <section class="works-content" id="content">
+      <div class="content-placeholder">
         <p>选择一个作品查看内容</p>
       </div>
-    </article>
+    </section>
   </main>
 
-  <section class="add-work">
+  <section class="add-section">
     <h3>添加新作品</h3>
-    <form id="work-form">
-      <input type="text" id="work-title" placeholder="标题">
-      <textarea id="work-content" placeholder="内容..." rows="10"></textarea>
-      <button type="submit">发布</button>
+    <form id="add-form">
+      <input type="text" id="title-input" placeholder="标题" autocomplete="off">
+      <textarea id="content-input" placeholder="内容..." rows="10"></textarea>
+      <button type="submit" id="submit-btn">发布</button>
     </form>
   </section>
 
