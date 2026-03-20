@@ -68,6 +68,7 @@ main {
   margin: 0 auto;
   padding: 3rem 2rem;
   width: 100%;
+  min-width: 0;
 }
 
 /* ==================== Home Page ==================== */
@@ -149,21 +150,29 @@ main {
   line-height: 1;
 }
 
+.profile-info {
+  min-width: 0;
+}
+
 .profile-info h2 {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
+  overflow-wrap: break-word;
 }
 
 .profile-edu {
   color: var(--text-light);
   font-size: 0.95rem;
   margin-bottom: 0.5rem;
+  overflow-wrap: break-word;
 }
 
 .profile-links {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .profile-links a {
@@ -232,6 +241,7 @@ main {
 .page-header p {
   color: var(--text-light);
   margin-top: 0.25rem;
+  overflow-wrap: break-word;
 }
 
 /* ==================== Carousel (Thoughts) ==================== */
