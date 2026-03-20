@@ -189,6 +189,11 @@ main {
   font-weight: 500;
 }
 
+.card-en {
+  font-weight: 400;
+  color: var(--text-light);
+}
+
 .card p {
   color: var(--text-light);
   margin-top: 0.5rem;
