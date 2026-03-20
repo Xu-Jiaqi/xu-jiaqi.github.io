@@ -23,18 +23,22 @@
   }
 
   function renderLists() {
-    const renderOne = (listEl) => {
-      if (works.length === 0) {
-        listEl.innerHTML = '<li class="empty-state">暂无 / None</li>';
+    const papers = works.filter(w => (w.category || 'paper') === 'paper');
+    const notes = works.filter(w => w.category === 'note');
+
+    const renderOne = (listEl, items) => {
+      if (items.length === 0) {
+        listEl.innerHTML = '<li class="empty-item">暂无 / None</li>';
         return;
       }
-      listEl.innerHTML = works.map((w, i) =>
-        `<li data-i="${i}">${esc(w.title || '无标题')}</li>`
-      ).join('');
+      listEl.innerHTML = items.map(w => {
+        const globalIndex = works.indexOf(w);
+        return `<li data-i="${globalIndex}">${esc(w.title || '无标题')}</li>`;
+      }).join('');
     };
 
-    renderOne(paperList);
-    renderOne(noteList);
+    renderOne(paperList, papers);
+    renderOne(noteList, notes);
 
     [paperList, noteList].forEach(listEl => {
       listEl.querySelectorAll('li[data-i]').forEach(li => {
@@ -65,8 +69,8 @@
     }
 
     [paperList, noteList].forEach(listEl => {
-      listEl.querySelectorAll('li[data-i]').forEach((li, idx) => {
-        li.classList.toggle('active', idx === i);
+      listEl.querySelectorAll('li[data-i]').forEach(li => {
+        li.classList.toggle('active', +li.dataset.i === i);
       });
     });
   }
