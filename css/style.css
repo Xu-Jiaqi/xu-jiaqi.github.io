@@ -131,9 +131,7 @@ main {
 }
 
 .profile-avatar {
-  font-size: 2.5rem;
-  line-height: 1;
-  flex-shrink: 0;
+  display: none;
 }
 
 .profile-info {
