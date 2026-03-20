@@ -1,4 +1,8 @@
-// 日有所思 - Thoughts Page
+// 日有所思 - 自动切换卡片轮播
+
+let thoughtsData = [];
+let currentIndex = 0;
+let autoPlayInterval = null;
 
 // 检查 GitHub 配置
 async function checkGitHubConfig() {
@@ -16,18 +20,17 @@ async function checkGitHubConfig() {
 }
 
 function showSetupPrompt() {
-  const container = document.getElementById('thoughts');
+  const container = document.getElementById('carousel');
   container.innerHTML = `
-    <div class="setup-prompt">
-      <h3>需要配置 GitHub Token</h3>
-      <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
-      <form id="token-form">
-        <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
-        <button type="submit" style="margin-top: 1rem;">确认</button>
-      </form>
-      <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
-        <a href="https://github.com/settings/tokens/new?scopes=gist&description=blog-data" target="_blank">创建 Token →</a>
-      </p>
+    <div class="carousel-card">
+      <div class="setup-prompt">
+        <h3>需要配置 GitHub Token</h3>
+        <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
+        <form id="token-form">
+          <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
+          <button type="submit" style="margin-top: 1rem;">确认</button>
+        </form>
+      </div>
     </div>
   `;
 
@@ -65,22 +68,91 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// 渲染列表
-function renderThoughts(thoughts) {
-  const container = document.getElementById('thoughts');
+// 渲染轮播卡片
+function renderCarousel() {
+  const carousel = document.getElementById('carousel');
+  const dotsContainer = document.getElementById('carousel-dots');
 
-  if (!thoughts || thoughts.length === 0) {
-    container.innerHTML = '<div class="empty-state">还没有记录，记录你的第一个想法吧</div>';
+  if (!thoughtsData || thoughtsData.length === 0) {
+    carousel.innerHTML = `
+      <div class="carousel-card">
+        <div class="empty-state">还没有记录，记录你的第一个想法吧</div>
+      </div>
+    `;
+    dotsContainer.innerHTML = '';
     return;
   }
 
-  container.innerHTML = thoughts.map(thought => `
-    <div class="thought-item">
+  // Render cards
+  carousel.innerHTML = thoughtsData.map((thought, i) => `
+    <div class="carousel-card">
       <div class="thought-time">${formatDate(thought.time)}</div>
       <div class="thought-content">${escapeHtml(thought.content)}</div>
     </div>
   `).join('');
+
+  // Render dots
+  dotsContainer.innerHTML = thoughtsData.map((_, i) => `
+    <div class="carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>
+  `).join('');
+
+  // Add dot click handlers
+  dotsContainer.querySelectorAll('.carousel-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      goToSlide(parseInt(dot.dataset.index));
+    });
+  });
+
+  updateCarousel();
 }
+
+// 更新轮播位置
+function updateCarousel() {
+  const carousel = document.getElementById('carousel');
+  const dots = document.querySelectorAll('.carousel-dot');
+
+  carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('active', i === currentIndex);
+  });
+}
+
+// 切换到指定卡片
+function goToSlide(index) {
+  currentIndex = index;
+  updateCarousel();
+  resetAutoPlay();
+}
+
+// 自动播放
+function startAutoPlay() {
+  if (thoughtsData.length <= 1) return;
+  autoPlayInterval = setInterval(() => {
+    currentIndex = (currentIndex + 1) % thoughtsData.length;
+    updateCarousel();
+  }, 5000); // 每5秒切换
+}
+
+function resetAutoPlay() {
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+  }
+  startAutoPlay();
+}
+
+// 手动切换
+document.getElementById('prev-btn').addEventListener('click', () => {
+  currentIndex = (currentIndex - 1 + thoughtsData.length) % thoughtsData.length;
+  updateCarousel();
+  resetAutoPlay();
+});
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  currentIndex = (currentIndex + 1) % thoughtsData.length;
+  updateCarousel();
+  resetAutoPlay();
+});
 
 // 表单提交
 document.getElementById('thought-form').addEventListener('submit', async (e) => {
@@ -98,11 +170,12 @@ document.getElementById('thought-form').addEventListener('submit', async (e) => 
     await GitHubStore.saveThought(content);
     input.value = '';
 
-    const thoughts = await GitHubStore.loadThoughts();
-    renderThoughts(thoughts);
+    thoughtsData = await GitHubStore.loadThoughts();
+    currentIndex = 0;
+    renderCarousel();
+    startAutoPlay();
   } catch (err) {
     alert('保存失败: ' + err.message);
-    console.error(err);
   } finally {
     const btn = e.target.querySelector('button');
     btn.disabled = false;
@@ -115,12 +188,16 @@ document.getElementById('thought-form').addEventListener('submit', async (e) => 
   const configured = await checkGitHubConfig();
   if (configured) {
     try {
-      const thoughts = await GitHubStore.loadThoughts();
-      renderThoughts(thoughts);
+      thoughtsData = await GitHubStore.loadThoughts();
+      renderCarousel();
+      startAutoPlay();
     } catch (err) {
-      console.error('加载失败:', err);
-      const container = document.getElementById('thoughts');
-      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}<br><small>${err.stack}</small></div>`;
+      const carousel = document.getElementById('carousel');
+      carousel.innerHTML = `
+        <div class="carousel-card">
+          <div class="empty-state">加载失败: ${err.message}</div>
+        </div>
+      `;
     }
   }
 })();

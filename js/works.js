@@ -1,4 +1,6 @@
-// 作品集 - Works Page
+// 作品集 - 左侧导航列表 + 右侧文章展示
+
+let worksData = [];
 
 // 检查 GitHub 配置
 async function checkGitHubConfig() {
@@ -16,32 +18,20 @@ async function checkGitHubConfig() {
 }
 
 function showSetupPrompt() {
-  const container = document.getElementById('works');
-  container.innerHTML = `
-    <div class="setup-prompt">
-      <h3>需要配置 GitHub Token</h3>
-      <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
-      <form id="token-form">
-        <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
-        <button type="submit" style="margin-top: 1rem;">确认</button>
-      </form>
-      <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
-        <a href="https://github.com/settings/tokens/new?scopes=gist&description=blog-data" target="_blank">创建 Token →</a>
-      </p>
-    </div>
+  const list = document.getElementById('works-list');
+  list.innerHTML = `
+    <li class="setup-prompt-item">
+      <div>
+        <h3>需要配置 GitHub Token</h3>
+        <p>请输入你的 GitHub Personal Access Token</p>
+      </div>
+    </li>
   `;
-
-  document.getElementById('token-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const token = document.getElementById('token-input').value.trim();
+  list.querySelector('.setup-prompt-item').addEventListener('click', () => {
+    const token = prompt('请输入 GitHub Token:');
     if (token) {
       localStorage.setItem('gh_token', token);
-      const valid = await GitHubStore.checkToken();
-      if (valid) {
-        location.reload();
-      } else {
-        alert('Token 无效，请检查后重试');
-      }
+      location.reload();
     }
   });
 }
@@ -63,22 +53,44 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// 渲染列表
-function renderWorks(works) {
-  const container = document.getElementById('works');
+// 渲染侧边栏列表
+function renderSidebar() {
+  const list = document.getElementById('works-list');
 
-  if (!works || works.length === 0) {
-    container.innerHTML = '<div class="empty-state">还没有作品，发布你的第一篇长文吧</div>';
+  if (!worksData || worksData.length === 0) {
+    list.innerHTML = '<li class="empty-item">还没有作品</li>';
     return;
   }
 
-  container.innerHTML = works.map(work => `
-    <div class="work-item">
-      <h3 class="work-title">${escapeHtml(work.title)}</h3>
+  list.innerHTML = worksData.map((work, i) => `
+    <li data-index="${i}">${escapeHtml(work.title)}</li>
+  `).join('');
+
+  // 点击列表项
+  list.querySelectorAll('li[data-index]').forEach(item => {
+    item.addEventListener('click', () => {
+      const index = parseInt(item.dataset.index);
+      showWork(index);
+
+      // 更新激活状态
+      list.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+}
+
+// 显示指定作品
+function showWork(index) {
+  const content = document.getElementById('works-content');
+  const work = worksData[index];
+
+  content.innerHTML = `
+    <div class="work-display active">
+      <h2 class="work-title">${escapeHtml(work.title)}</h2>
       <div class="work-meta">${formatDate(work.time)}</div>
       <div class="work-content">${escapeHtml(work.content)}</div>
     </div>
-  `).join('');
+  `;
 }
 
 // 表单提交
@@ -100,11 +112,17 @@ document.getElementById('work-form').addEventListener('submit', async (e) => {
     titleInput.value = '';
     contentInput.value = '';
 
-    const works = await GitHubStore.loadWorks();
-    renderWorks(works);
+    worksData = await GitHubStore.loadWorks();
+    renderSidebar();
+
+    // 显示最新发布的
+    if (worksData.length > 0) {
+      showWork(0);
+      const firstItem = document.querySelector('li[data-index="0"]');
+      if (firstItem) firstItem.classList.add('active');
+    }
   } catch (err) {
     alert('发布失败: ' + err.message);
-    console.error(err);
   } finally {
     const btn = e.target.querySelector('button');
     btn.disabled = false;
@@ -117,12 +135,17 @@ document.getElementById('work-form').addEventListener('submit', async (e) => {
   const configured = await checkGitHubConfig();
   if (configured) {
     try {
-      const works = await GitHubStore.loadWorks();
-      renderWorks(works);
+      worksData = await GitHubStore.loadWorks();
+      renderSidebar();
+
+      // 默认显示第一篇
+      if (worksData.length > 0) {
+        showWork(0);
+        const firstItem = document.querySelector('li[data-index="0"]');
+        if (firstItem) firstItem.classList.add('active');
+      }
     } catch (err) {
       console.error('加载失败:', err);
-      const container = document.getElementById('works');
-      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}<br><small>${err.stack}</small></div>`;
     }
   }
 })();

@@ -17,25 +17,28 @@
     </nav>
   </header>
 
-  <main>
-    <section class="page-header">
-      <h1>作品集</h1>
-      <p>长文与项目展示</p>
-    </section>
-
-    <section class="works-list" id="works">
-      <!-- Works will be loaded here -->
-    </section>
-
-    <section class="add-work">
-      <h3>添加新作品</h3>
-      <form id="work-form">
-        <input type="text" id="work-title" placeholder="标题" rows="1"></input>
-        <textarea id="work-content" placeholder="内容..." rows="10"></textarea>
-        <button type="submit">发布</button>
-      </form>
-    </section>
+  <main class="works-layout">
+    <aside class="works-sidebar">
+      <h3>文章列表</h3>
+      <ul class="works-list" id="works-list">
+        <!-- List items will be loaded here -->
+      </ul>
+    </aside>
+    <article class="works-content" id="works-content">
+      <div class="works-empty">
+        <p>选择一个作品查看内容</p>
+      </div>
+    </article>
   </main>
+
+  <section class="add-work">
+    <h3>添加新作品</h3>
+    <form id="work-form">
+      <input type="text" id="work-title" placeholder="标题">
+      <textarea id="work-content" placeholder="内容..." rows="10"></textarea>
+      <button type="submit">发布</button>
+    </form>
+  </section>
 
   <footer>
     <p>&copy; 2026 Xu-Jiaqi</p>

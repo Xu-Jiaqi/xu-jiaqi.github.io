@@ -30,7 +30,7 @@ header {
 }
 
 nav {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -65,7 +65,7 @@ nav {
 /* Main */
 main {
   flex: 1;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 3rem 2rem;
   width: 100%;
@@ -142,7 +142,180 @@ main {
   color: var(--text-light);
 }
 
-/* Thoughts */
+/* ========== Carousel (日有所思) ========== */
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 3rem;
+}
+
+.carousel {
+  display: flex;
+  transition: transform 0.4s ease;
+}
+
+.carousel-card {
+  flex: 0 0 100%;
+  padding: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.carousel-card .thought-time {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+.carousel-card .thought-content {
+  font-size: 1.25rem;
+  line-height: 1.8;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.carousel-dot.active {
+  background: var(--text);
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  padding: 0 0.5rem;
+}
+
+.carousel-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.carousel-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--text);
+}
+
+/* ========== Works Layout (作品集) ========== */
+.works-layout {
+  display: flex;
+  gap: 3rem;
+  min-height: 500px;
+}
+
+.works-sidebar {
+  flex: 0 0 220px;
+  border-right: 1px solid var(--border);
+  padding-right: 2rem;
+}
+
+.works-sidebar h3 {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.works-list {
+  list-style: none;
+}
+
+.works-list li {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.95rem;
+  color: var(--text-light);
+}
+
+.works-list li:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.works-list li.active {
+  background: var(--hover-bg);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.works-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.works-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-light);
+}
+
+.work-display {
+  display: none;
+}
+
+.work-display.active {
+  display: block;
+}
+
+.work-display .work-title {
+  font-size: 1.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.work-display .work-meta {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin-bottom: 2rem;
+}
+
+.work-display .work-content {
+  font-size: 1rem;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+/* Thoughts (shared) */
 .thoughts-list {
   display: flex;
   flex-direction: column;
@@ -171,8 +344,8 @@ main {
   line-height: 1.7;
 }
 
-/* Works */
-.works-list {
+/* Works (shared) */
+.works-list-shared {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -183,6 +356,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 8px;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .work-item:hover {
@@ -288,8 +462,25 @@ footer {
   color: var(--text-light);
 }
 
+/* Setup Prompt */
+.setup-prompt {
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.setup-prompt h3 {
+  margin-bottom: 1rem;
+}
+
+.setup-prompt p {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .cards {
     grid-template-columns: 1fr;
   }
@@ -303,5 +494,17 @@ footer {
 
   main {
     padding: 2rem 1.5rem;
+  }
+
+  .works-layout {
+    flex-direction: column;
+  }
+
+  .works-sidebar {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 1.5rem;
   }
 }
