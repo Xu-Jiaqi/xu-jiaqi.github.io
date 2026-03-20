@@ -6,10 +6,6 @@
 
   const listEl = document.getElementById('article-list');
   const contentEl = document.getElementById('content');
-  const form = document.getElementById('add-form');
-  const titleInput = document.getElementById('title-input');
-  const contentInput = document.getElementById('content-input');
-  const submitBtn = document.getElementById('submit-btn');
 
   // 格式化日期
   function formatDate(iso) {
@@ -53,42 +49,14 @@
       <div class="article-display active">
         <h2 class="article-title">${esc(work.title)}</h2>
         <div class="article-meta">${formatDate(work.time)}</div>
-        <div class="article-body">${esc(work.content)}</div>
+        <div class="article-body">${marked.parse(work.content)}</div>
       </div>
     `;
 
-    // 更新激活状态
     listEl.querySelectorAll('li[data-i]').forEach((li, idx) => {
       li.classList.toggle('active', idx === i);
     });
   }
-
-  // 提交
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = titleInput.value.trim();
-    const content = contentInput.value.trim();
-    if (!title || !content) return;
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = '发布中...';
-
-    try {
-      await GitHubStore.saveWork(title, content);
-      titleInput.value = '';
-      contentInput.value = '';
-      works = await GitHubStore.loadWorks();
-      renderList();
-      if (works.length > 0) {
-        showWork(0);
-      }
-    } catch (err) {
-      alert('发布失败：' + err.message);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = '发布';
-    }
-  });
 
   // 初始化
   (async function init() {
