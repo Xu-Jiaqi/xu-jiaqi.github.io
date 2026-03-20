@@ -3,6 +3,7 @@
 (function() {
   let works = [];
   let activeIndex = -1;
+  const converter = new showdown.Converter();
 
   const listEl = document.getElementById('article-list');
   const contentEl = document.getElementById('content');
@@ -43,9 +44,7 @@
     if (!work) return;
 
     try {
-      const body = typeof marked !== 'undefined' && marked.parse
-        ? marked.parse(work.content || '')
-        : esc(work.content || '');
+      const body = converter.makeHtml(work.content || '');
 
       contentEl.innerHTML = `
         <div class="article-display active">
