@@ -23,7 +23,7 @@
 
   function renderList() {
     if (works.length === 0) {
-      listEl.innerHTML = '<li class="empty-state">还没有作品</li>';
+      listEl.innerHTML = '<li class="empty-state">还没有作品 / No works yet</li>';
       return;
     }
 
@@ -72,7 +72,7 @@
       }
     } catch (err) {
       console.error('Load error:', err);
-      listEl.innerHTML = `<li class="error-state">加载失败：${err.message}</li>`;
+      listEl.innerHTML = `<li class="error-state">加载失败：${err.message} / Load failed</li>`;
     }
   })();
 })();

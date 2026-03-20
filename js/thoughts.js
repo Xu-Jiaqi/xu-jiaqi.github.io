@@ -26,7 +26,7 @@
 
   function render() {
     if (thoughts.length === 0) {
-      track.innerHTML = '<div class="loading">还没有记录</div>';
+      track.innerHTML = '<div class="loading">还没有记录 / No records yet</div>';
       dots.innerHTML = '';
       return;
     }
@@ -102,7 +102,7 @@
       render();
       startTimer();
     } catch (err) {
-      track.innerHTML = `<div class="error-state">加载失败：${err.message}</div>`;
+      track.innerHTML = `<div class="error-state">加载失败：${err.message} / Load failed</div>`;
     }
   })();
 })();
