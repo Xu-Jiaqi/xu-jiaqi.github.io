@@ -6,35 +6,21 @@
   <title>作品集 - Xu-Jiaqi</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-  <header>
-    <nav>
-      <a href="index.html" class="logo">Xu-Jiaqi</a>
-      <div class="nav-links">
-        <a href="thoughts.html">日有所思</a>
-        <a href="works.html" class="active">作品集</a>
-      </div>
+<body class="works-body">
+  <div class="page-header">
+    <a href="index.html" class="back-link">← 返回首页</a>
+    <h1>作品集</h1>
+    <p>长文与项目展示，持续更新</p>
+  </div>
+
+  <div class="works-layout">
+    <nav class="works-sidebar" id="sidebar">
+      <!-- rendered by JS -->
     </nav>
-  </header>
-
-  <main class="works-layout">
-    <aside class="works-sidebar">
-      <h3>文章列表</h3>
-      <ul class="article-list" id="article-list">
-        <!-- Rendered by JS -->
-      </ul>
-    </aside>
-
-    <section class="works-content" id="content">
-      <div class="content-placeholder">
-        <p>选择一个作品查看内容</p>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2026 Xu-Jiaqi</p>
-  </footer>
+    <main class="works-main" id="main">
+      <p class="works-placeholder">选择一个作品查看内容</p>
+    </main>
+  </div>
 
   <script src="js/store.js"></script>
   <script src="js/showdown.min.js"></script>
