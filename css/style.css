@@ -87,6 +87,82 @@ main {
   margin-top: 0.5rem;
 }
 
+/* ==================== Page Header ==================== */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+.page-header p {
+  color: var(--text-light);
+  margin-top: 0.25rem;
+}
+
+/* ==================== Profile Detail ==================== */
+.profile-detail {
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-light);
+}
+
+/* ==================== Profile Card ==================== */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.profile-card:hover {
+  border-color: #ccc;
+  background: #fafafa;
+}
+
+.profile-avatar {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.profile-info h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.profile-edu {
+  color: var(--text-light);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.profile-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.profile-links a {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.profile-links a:hover {
+  color: var(--text);
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

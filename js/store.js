@@ -1,18 +1,11 @@
-// GitHub Gist 持久化存储
+// GitHub Gist 持久化存储（只读）
 // 读取：公开 Gist，无需 Token（任何人都能读）
-// 写入：需要 Token
-// 缓存：sessionStorage 避免重复请求
+// 缓存：sessionStorage，5分钟有效
 
 const GIST_ID = 'c54f62bb3a10ff3d8dc8689d06b4ff20';
-const TOKEN_KEY = 'gh_token';
 const CACHE_KEY = 'gist_cache';
-const CACHE_TTL = 5 * 60 * 1000; // 5分钟缓存
+const CACHE_TTL = 5 * 60 * 1000; // 5分钟
 
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-// 获取缓存
 function getCache() {
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
@@ -28,7 +21,6 @@ function getCache() {
   }
 }
 
-// 设置缓存
 function setCache(data) {
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -38,33 +30,9 @@ function setCache(data) {
   } catch {}
 }
 
-// 公开读取 Gist
 async function fetchPublicGist() {
   const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
   if (!response.ok) throw new Error('获取数据失败');
-  return response.json();
-}
-
-// 写入 Gist
-async function patchGist(files) {
-  const token = getToken();
-  if (!token) throw new Error('需要 GitHub Token 才能保存');
-
-  const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ files })
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(err.message || '保存失败');
-  }
   return response.json();
 }
 
@@ -85,24 +53,6 @@ async function loadThoughts() {
   return thoughts;
 }
 
-async function saveThought(content) {
-  const thoughts = await loadThoughts();
-  thoughts.unshift({
-    id: Date.now(),
-    content,
-    time: new Date().toISOString()
-  });
-  await patchGist({
-    'thoughts.json': { content: JSON.stringify({ thoughts }, null, 2) }
-  });
-
-  const cache = getCache() || {};
-  cache.thoughts = thoughts;
-  setCache(cache);
-
-  return thoughts[0];
-}
-
 // ========== Works ==========
 
 async function loadWorks() {
@@ -118,25 +68,6 @@ async function loadWorks() {
   setCache(cache);
 
   return works;
-}
-
-async function saveWork(title, content) {
-  const works = await loadWorks();
-  works.unshift({
-    id: Date.now(),
-    title,
-    content,
-    time: new Date().toISOString()
-  });
-  await patchGist({
-    'works.json': { content: JSON.stringify({ works }, null, 2) }
-  });
-
-  const cache = getCache() || {};
-  cache.works = works;
-  setCache(cache);
-
-  return works[0];
 }
 
 // 预加载（首页调用，提前拉取数据）
@@ -155,12 +86,7 @@ async function preload() {
 }
 
 window.GitHubStore = {
-  getToken: () => localStorage.getItem(TOKEN_KEY),
-  setToken: (t) => localStorage.setItem(TOKEN_KEY, t),
-  checkToken: async () => !!getToken(),
   loadThoughts,
-  saveThought,
   loadWorks,
-  saveWork,
   preload
 };
