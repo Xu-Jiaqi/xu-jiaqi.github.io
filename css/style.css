@@ -120,6 +120,10 @@ main {
   margin-bottom: 0.75rem;
 }
 
+.profile-card .section-title {
+  margin-bottom: 0.5rem;
+}
+
 /* ==================== Profile Card ==================== */
 .profile-card {
   display: flex;
