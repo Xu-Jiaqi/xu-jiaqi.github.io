@@ -6,19 +6,39 @@
   <title>日有所思 - Xu-Jiaqi</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="thoughts-body">
-  <div class="page-header">
-    <a href="index.html" class="back-link">← 返回首页</a>
-    <h1>日有所思</h1>
-    <p>简短的思考与灵感，每日记录</p>
-  </div>
+<body>
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Xu-Jiaqi</a>
+      <div class="nav-links">
+        <a href="thoughts.html" class="active">日有所思</a>
+        <a href="works.html">作品集</a>
+      </div>
+    </nav>
+  </header>
 
-  <div class="slider-wrap">
-    <div class="slider-stage" id="stage">
-      <!-- rendered by JS -->
-    </div>
-    <div class="slider-dots" id="dots"></div>
-  </div>
+  <main>
+    <section class="page-header">
+      <h1>日有所思</h1>
+      <p>简短的思考与灵感</p>
+    </section>
+
+    <section class="carousel-wrapper">
+      <div class="carousel-track" id="track">
+        <!-- Cards rendered by JS -->
+      </div>
+
+      <div class="carousel-controls">
+        <button class="carousel-arrow prev" id="prev">‹</button>
+        <div class="carousel-dots" id="dots"></div>
+        <button class="carousel-arrow next" id="next">›</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Xu-Jiaqi</p>
+  </footer>
 
   <script src="js/store.js"></script>
   <script src="js/thoughts.js"></script>
