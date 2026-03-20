@@ -3,30 +3,29 @@
 // 缓存：sessionStorage，5分钟有效
 
 const GIST_ID = 'c54f62bb3a10ff3d8dc8689d06b4ff20';
-const CACHE_KEY = 'gist_cache';
-const CACHE_TTL = 5 * 60 * 1000; // 5分钟
+const CACHE_KEY = 'gist_cache_v2';
+const CACHE_TTL = 5 * 60 * 1000;
 
 function getCache() {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    const { data, timestamp } = JSON.parse(cached);
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { data, timestamp } = JSON.parse(raw);
     if (Date.now() - timestamp > CACHE_TTL) {
       sessionStorage.removeItem(CACHE_KEY);
       return null;
     }
-    return data;
+    return data; // { thoughts, works, timestamp }
   } catch {
     return null;
   }
 }
 
-function setCache(data) {
+function setCache(partial) {
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
+    const existing = getCache() || {};
+    const merged = { ...existing, ...partial, timestamp: Date.now() };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: merged }));
   } catch {}
 }
 
@@ -46,10 +45,7 @@ async function loadThoughts() {
   const file = gist.files['thoughts.json'];
   const thoughts = file ? JSON.parse(file.content).thoughts || [] : [];
 
-  const cache = getCache() || {};
-  cache.thoughts = thoughts;
-  setCache(cache);
-
+  setCache({ thoughts });
   return thoughts;
 }
 
@@ -63,10 +59,7 @@ async function loadWorks() {
   const file = gist.files['works.json'];
   const works = file ? JSON.parse(file.content).works || [] : [];
 
-  const cache = getCache() || {};
-  cache.works = works;
-  setCache(cache);
-
+  setCache({ works });
   return works;
 }
 
