@@ -1,11 +1,13 @@
-name: Sync Works to Gist
+name: Sync to Gist
 
 on:
   push:
     branches: [main]
     paths:
+      - '_thoughts/**'
       - '_works/Notes/**'
       - '_works/Papers/**'
+      - '_dates/thoughts_dates.json'
       - '_dates/works_dates.json'
 
 jobs:
@@ -14,62 +16,82 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build works JSON and upload to Gist
+      - name: Build and sync to Gist
         run: |
           python3 << 'PYEOF'
           import json
           import os
           from pathlib import Path
 
-          # Load dates
-          with open('_dates/works_dates.json', 'r') as f:
-            dates = json.load(f)
+          gist_files = {}
 
+          # ===== Thoughts =====
+          thoughts_dates_file = Path('_dates/thoughts_dates.json')
+          thoughts = []
+          if thoughts_dates_file.exists():
+            with open(thoughts_dates_file, 'r') as f:
+              dates = json.load(f)
+            thoughts_folder = Path('_thoughts')
+            if thoughts_folder.exists():
+              for txt_file in sorted(thoughts_folder.glob('*.txt')):
+                with open(txt_file, 'r', encoding='utf-8') as f:
+                  content = f.read().strip()
+                filename = txt_file.name
+                time_str = dates.get(filename, str(os.path.getmtime(txt_file)))
+                thoughts.append({
+                  'id': hash(filename) % 10**12,
+                  'content': content,
+                  'time': time_str
+                })
+
+          thoughts.sort(key=lambda x: x['time'], reverse=True)
+          gist_files['thoughts.json'] = json.dumps({'thoughts': thoughts}, ensure_ascii=False, indent=2)
+          print(f'Thoughts: {len(thoughts)} items')
+
+          # ===== Works =====
+          works_dates_file = Path('_dates/works_dates.json')
           works = []
+          if works_dates_file.exists():
+            with open(works_dates_file, 'r') as f:
+              dates = json.load(f)
+            for category in ['Notes', 'Papers']:
+              folder = Path(f'_works/{category}')
+              if not folder.exists():
+                continue
+              for md_file in sorted(folder.glob('*.md')):
+                with open(md_file, 'r', encoding='utf-8') as f:
+                  content = f.read()
+                title = md_file.stem
+                for line in content.split('\n'):
+                  if line.startswith('# '):
+                    title = line[2:].strip()
+                    break
+                filename = md_file.name
+                time_str = dates.get(filename, str(os.path.getmtime(md_file)))
+                works.append({
+                  'id': hash(filename) % 10**12,
+                  'title': title,
+                  'category': category.lower().rstrip('s'),
+                  'content': content,
+                  'time': time_str
+                })
 
-          for category in ['Notes', 'Papers']:
-            folder = Path(f'_works/{category}')
-            if not folder.exists():
-              continue
-            for md_file in sorted(folder.glob('*.md')):
-              with open(md_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-              # Title from first h1 or filename
-              title = md_file.stem
-              for line in content.split('\n'):
-                if line.startswith('# '):
-                  title = line[2:].strip()
-                  break
-
-              # Get time from dates file, fallback to file mtime
-              filename = md_file.name
-              time_str = dates.get(filename, None)
-              if not time_str:
-                time_str = str(os.path.getmtime(md_file))
-
-              works.append({
-                'id': hash(filename) % 10**12,
-                'title': title,
-                'category': category.lower().rstrip('s'),
-                'content': content,
-                'time': time_str
-              })
-
-          # Sort by time, newest first
           works.sort(key=lambda x: x['time'], reverse=True)
+          gist_files['works.json'] = json.dumps({'works': works}, ensure_ascii=False, indent=2)
+          print(f'Works: {len(works)} items')
 
-          output = json.dumps({'works': works}, ensure_ascii=False, indent=2)
-          with open('works.json', 'w', encoding='utf-8') as f:
-            f.write(output)
-          print(f'Generated works.json with {len(works)} items')
+          # Save for curl upload
+          with open('gist_payload.json', 'w') as f:
+            json.dump({'files': {k: {'content': v} for k, v in gist_files.items()}}, f, indent=2)
           PYEOF
 
-          FILE_CONTENT=$(cat works.json | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+          # Upload to Gist using curl
           curl -s -X PATCH \
-            -H "Authorization: Bearer ${{ secrets.GIST_TOKEN }}" \
+            -H "Authorization: Bearer $GIST_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             -H "Content-Type: application/json" \
-            https://api.github.com/gists/c54f62bb3a10ff3d8dc8689d06b4ff20 \
-            -d "{\"files\":{\"works.json\":{\"content\":${FILE_CONTENT}}}}"
+            -d @gist_payload.json \
+            https://api.github.com/gists/c54f62bb3a10ff3d8dc8689d06b4ff20
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
