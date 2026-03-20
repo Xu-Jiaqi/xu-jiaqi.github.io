@@ -1,16 +1,49 @@
 // 作品集 - Works Page
 
-const STORAGE_KEY = 'blog_works';
-
-// Load works from localStorage
-function loadWorks() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+// 检查是否已配置 GitHub Token
+async function checkGitHubConfig() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) {
+    showSetupPrompt();
+    return false;
+  }
+  const valid = await GitHubStore.checkToken();
+  if (!valid) {
+    showSetupPrompt();
+    return false;
+  }
+  return true;
 }
 
-// Save works to localStorage
-function saveWorks(works) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(works));
+function showSetupPrompt() {
+  const container = document.getElementById('works');
+  container.innerHTML = `
+    <div class="setup-prompt">
+      <h3>需要配置 GitHub Token</h3>
+      <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
+      <form id="token-form">
+        <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
+        <button type="submit" style="margin-top: 1rem;">确认</button>
+      </form>
+      <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=blog-data" target="_blank">创建 Token →</a>
+      </p>
+    </div>
+  `;
+
+  document.getElementById('token-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('token-input').value.trim();
+    if (token) {
+      localStorage.setItem('gh_token', token);
+      const valid = await GitHubStore.checkToken();
+      if (valid) {
+        location.reload();
+      } else {
+        alert('Token 无效，请检查后重试');
+      }
+    }
+  });
 }
 
 // Format date
@@ -24,17 +57,13 @@ function formatDate(timestamp) {
 }
 
 // Render works list
-function renderWorks() {
+function renderWorks(works) {
   const container = document.getElementById('works');
-  const works = loadWorks();
 
   if (works.length === 0) {
     container.innerHTML = '<div class="empty-state">还没有作品，发布你的第一篇长文吧</div>';
     return;
   }
-
-  // Sort by time, newest first
-  works.sort((a, b) => b.time - a.time);
 
   container.innerHTML = works.map(work => `
     <div class="work-item">
@@ -53,7 +82,7 @@ function escapeHtml(text) {
 }
 
 // Handle form submit
-document.getElementById('work-form').addEventListener('submit', (e) => {
+document.getElementById('work-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const titleInput = document.getElementById('work-title');
   const contentInput = document.getElementById('work-content');
@@ -62,18 +91,36 @@ document.getElementById('work-form').addEventListener('submit', (e) => {
 
   if (!title || !content) return;
 
-  const works = loadWorks();
-  works.push({
-    title,
-    content,
-    time: Date.now()
-  });
+  try {
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = '发布中...';
 
-  saveWorks(works);
-  titleInput.value = '';
-  contentInput.value = '';
-  renderWorks();
+    await GitHubStore.saveWork(title, content);
+    titleInput.value = '';
+    contentInput.value = '';
+
+    const works = await GitHubStore.loadWorks();
+    renderWorks(works);
+  } catch (err) {
+    alert('发布失败: ' + err.message);
+  } finally {
+    const btn = e.target.querySelector('button');
+    btn.disabled = false;
+    btn.textContent = '发布';
+  }
 });
 
-// Initial render
-renderWorks();
+// Initial load
+(async () => {
+  const configured = await checkGitHubConfig();
+  if (configured) {
+    try {
+      const works = await GitHubStore.loadWorks();
+      renderWorks(works);
+    } catch (err) {
+      const container = document.getElementById('works');
+      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}</div>`;
+    }
+  }
+})();

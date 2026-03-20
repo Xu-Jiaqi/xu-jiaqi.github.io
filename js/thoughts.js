@@ -2,15 +2,50 @@
 
 const STORAGE_KEY = 'blog_thoughts';
 
-// Load thoughts from localStorage
-function loadThoughts() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+// 检查是否已配置 GitHub Token
+async function checkGitHubConfig() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) {
+    showSetupPrompt();
+    return false;
+  }
+  const valid = await GitHubStore.checkToken();
+  if (!valid) {
+    showSetupPrompt();
+    return false;
+  }
+  return true;
 }
 
-// Save thoughts to localStorage
-function saveThoughts(thoughts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
+function showSetupPrompt() {
+  const container = document.getElementById('thoughts');
+  container.innerHTML = `
+    <div class="setup-prompt">
+      <h3>需要配置 GitHub Token</h3>
+      <p>请输入你的 GitHub Personal Access Token 来启用持久化存储</p>
+      <form id="token-form">
+        <input type="password" id="token-input" placeholder="ghp_xxx" style="width: 100%;" />
+        <button type="submit" style="margin-top: 1rem;">确认</button>
+      </form>
+      <p style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=blog-data" target="_blank">创建 Token →</a>
+      </p>
+    </div>
+  `;
+
+  document.getElementById('token-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('token-input').value.trim();
+    if (token) {
+      localStorage.setItem('gh_token', token);
+      const valid = await GitHubStore.checkToken();
+      if (valid) {
+        location.reload();
+      } else {
+        alert('Token 无效，请检查后重试');
+      }
+    }
+  });
 }
 
 // Format date
@@ -26,17 +61,13 @@ function formatDate(timestamp) {
 }
 
 // Render thoughts list
-function renderThoughts() {
+function renderThoughts(thoughts) {
   const container = document.getElementById('thoughts');
-  const thoughts = loadThoughts();
 
   if (thoughts.length === 0) {
     container.innerHTML = '<div class="empty-state">还没有记录，记录你的第一个想法吧</div>';
     return;
   }
-
-  // Sort by time, newest first
-  thoughts.sort((a, b) => b.time - a.time);
 
   container.innerHTML = thoughts.map(thought => `
     <div class="thought-item">
@@ -54,23 +85,42 @@ function escapeHtml(text) {
 }
 
 // Handle form submit
-document.getElementById('thought-form').addEventListener('submit', (e) => {
+document.getElementById('thought-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = document.getElementById('thought-input');
   const content = input.value.trim();
 
   if (!content) return;
 
-  const thoughts = loadThoughts();
-  thoughts.push({
-    content,
-    time: Date.now()
-  });
+  try {
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
 
-  saveThoughts(thoughts);
-  input.value = '';
-  renderThoughts();
+    await GitHubStore.saveThought(content);
+    input.value = '';
+
+    const thoughts = await GitHubStore.loadThoughts();
+    renderThoughts(thoughts);
+  } catch (err) {
+    alert('保存失败: ' + err.message);
+  } finally {
+    const btn = e.target.querySelector('button');
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
 });
 
-// Initial render
-renderThoughts();
+// Initial load
+(async () => {
+  const configured = await checkGitHubConfig();
+  if (configured) {
+    try {
+      const thoughts = await GitHubStore.loadThoughts();
+      renderThoughts(thoughts);
+    } catch (err) {
+      const container = document.getElementById('thoughts');
+      container.innerHTML = `<div class="empty-state">加载失败: ${err.message}</div>`;
+    }
+  }
+})();
