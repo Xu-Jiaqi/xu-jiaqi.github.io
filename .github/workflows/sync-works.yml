@@ -10,15 +10,20 @@ on:
       - '_dates/thoughts_dates.json'
       - '_dates/works_dates.json'
 
+permissions:
+  contents: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and sync to Gist
+      - name: Build and sync to Gist and repo data
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           python3 << 'PYEOF'
           import json
@@ -84,6 +89,14 @@ jobs:
           gist_files['works.json'] = json.dumps({'works': works}, ensure_ascii=False, indent=2)
           print(f'Works: {len(works)} items')
 
+          # Write local data files
+          os.makedirs('data', exist_ok=True)
+          with open('data/thoughts.json', 'w', encoding='utf-8') as f:
+            f.write(gist_files['thoughts.json'])
+          with open('data/works.json', 'w', encoding='utf-8') as f:
+            f.write(gist_files['works.json'])
+          print('Wrote data/thoughts.json and data/works.json')
+
           # Build final payload - content values must be raw strings
           files_payload = {}
           for name, content in gist_files.items():
@@ -109,3 +122,13 @@ jobs:
             result = json.loads(resp.read())
             print(f"Gist updated: {result.get('id')}")
           PYEOF
+
+          # Commit and push data files back to repo (if changed)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/thoughts.json data/works.json || true
+          if git commit -m "ci: update generated data files [skip ci]" >/dev/null 2>&1; then
+            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}
+            git push origin HEAD:main || echo "push failed"
+          else
+            echo "No data changes to commit"
