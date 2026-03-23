@@ -12,7 +12,7 @@
 
   function formatDate(iso) {
     const d = new Date(iso);
-    return d.toLocaleDateString('zh-CN', {
+    return d.toLocaleString('zh-CN', {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
@@ -42,13 +42,20 @@
       </div>
     `;
 
+    // render dots as buttons for accessibility
     dots.innerHTML = thoughts.map((_, i) =>
-      `<div class="carousel-dot ${i === 0 ? 'active' : ''}" data-i="${i}"></div>`
+      `<button class="carousel-dot ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="切换到第 ${i+1} 条思考"></button>`
     ).join('');
 
     dots.querySelectorAll('.carousel-dot').forEach(dot => {
       dot.addEventListener('click', () => {
         goTo(+dot.dataset.i);
+      });
+      dot.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          goTo(+dot.dataset.i);
+        }
       });
     });
 
@@ -94,6 +101,20 @@
     current = (current + 1) % thoughts.length;
     updateSlide();
     resetTimer();
+  });
+
+  // keyboard support for prev/next
+  prevBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      prevBtn.click();
+    }
+  });
+  nextBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      nextBtn.click();
+    }
   });
 
   (async function init() {

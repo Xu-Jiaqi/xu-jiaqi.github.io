@@ -59,7 +59,7 @@ async function loadThoughts() {
   if (cached && cached.thoughts) return cached.thoughts;
 
   // 尝试本地静态文件
-  const local = await fetchLocalData('/data/thoughts.json');
+  const local = await fetchLocalData('data/thoughts.json');
   if (local && local.thoughts) {
     setCache({ thoughts: local.thoughts });
     return local.thoughts;
@@ -80,7 +80,7 @@ async function loadWorks() {
   const cached = getCache();
   if (cached && cached.works) return cached.works;
 
-  const local = await fetchLocalData('/data/works.json');
+  const local = await fetchLocalData('data/works.json');
   if (local && local.works) {
     setCache({ works: local.works });
     return local.works;
@@ -99,8 +99,8 @@ async function preload() {
   try {
     let cache = null;
 
-    const localThoughts = await fetchLocalData('/data/thoughts.json');
-    const localWorks = await fetchLocalData('/data/works.json');
+    const localThoughts = await fetchLocalData('data/thoughts.json');
+    const localWorks = await fetchLocalData('data/works.json');
 
     if (localThoughts || localWorks) {
       cache = {

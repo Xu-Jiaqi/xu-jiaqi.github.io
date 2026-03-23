@@ -31,9 +31,10 @@
         listEl.innerHTML = '<li class="empty-item">暂无 / None</li>';
         return;
       }
+      // use buttons inside li for accessibility and focus
       listEl.innerHTML = items.map(w => {
         const globalIndex = works.indexOf(w);
-        return `<li data-i="${globalIndex}">${esc(w.title || '无标题')}</li>`;
+        return `<li><button data-i="${globalIndex}" class="article-link">${esc(w.title || '无标题')}</button></li>`;
       }).join('');
     };
 
@@ -41,9 +42,15 @@
     renderOne(noteList, notes);
 
     [paperList, noteList].forEach(listEl => {
-      listEl.querySelectorAll('li[data-i]').forEach(li => {
-        li.addEventListener('click', () => {
-          showWork(+li.dataset.i);
+      listEl.querySelectorAll('button.article-link').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showWork(+btn.dataset.i);
+        });
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showWork(+btn.dataset.i);
+          }
         });
       });
     });
@@ -55,7 +62,10 @@
     if (!work) return;
 
     try {
-      const body = converter.makeHtml(work.content || '');
+      const raw = converter.makeHtml(work.content || '');
+      // sanitize HTML produced by the markdown converter
+      const body = (window.DOMPurify && window.DOMPurify.sanitize) ?
+        window.DOMPurify.sanitize(raw) : raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
 
       contentEl.innerHTML = `
         <div class="article-display active">
@@ -69,8 +79,10 @@
     }
 
     [paperList, noteList].forEach(listEl => {
-      listEl.querySelectorAll('li[data-i]').forEach(li => {
-        li.classList.toggle('active', +li.dataset.i === i);
+      listEl.querySelectorAll('button.article-link').forEach(btn => {
+        const idx = +btn.dataset.i;
+        btn.classList.toggle('active', idx === i);
+        if (idx === i) btn.setAttribute('aria-current', 'true'); else btn.removeAttribute('aria-current');
       });
     });
   }
