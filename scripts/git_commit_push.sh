@@ -43,7 +43,11 @@ fi
 git fetch origin
 # attempt rebase with autostash (if local commits exist)
 if git rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
-  CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD || echo '')
+# If detached HEAD, default to 'main'
+if [[ "$CUR_BRANCH" == "HEAD" || -z "$CUR_BRANCH" ]]; then
+  CUR_BRANCH=main
+fi
 else
   CUR_BRANCH="main"
 fi
