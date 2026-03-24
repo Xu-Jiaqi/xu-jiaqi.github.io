@@ -1,7 +1,7 @@
 {
   "works": [
     {
-      "id": 486975337335,
+      "id": 651363567388,
       "title": "少年的梦",
       "category": "note",
       "content": "高中时的一些失败的ideas，谨记于此，以作纪念。\n\n## 1 CNN+Transformer\n\nCNN最为人诟病的一点是逐步扩大的感受野，而Attention最擅长的就是长程感知。所以就有了这个 idea：以CNN为骨架，在每一层后把特征图分patch取均值获得repr. tokens，在repr. tokens间做一次attention，再把repr. tokens加回到对应的patch上。这可能是我中学时所有 ideas 里面我自己觉得最粗糙，但是也是最有用的一个了。在CIFAR-10的实验上它确实涨点了（具体涨了多少我不记得了），然而我觉得付出的代价远远大于获得的收益——每层一个attention，需要的算力可能都超过整个CNN了。后来好像看到了一篇文章做了类似的事情，不过我这个比人家的就naive多了。原本我想的好像是每个patch内部和 repr. token 做一次attention，外部再做一次，不过好像效果还不如只做外部。\n",
