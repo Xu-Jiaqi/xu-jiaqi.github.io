@@ -132,3 +132,4 @@ jobs:
             git push origin HEAD:main || echo "push failed"
           else
             echo "No data changes to commit"
+          fi
