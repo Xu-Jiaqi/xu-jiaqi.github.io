@@ -439,6 +439,46 @@ main {
   padding-bottom: 0.25rem;
 }
 
+/* Code block and inline code styles in Works */
+.article-body pre,
+.article-body pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", "Droid Sans Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.article-body pre {
+  background: #f6f8fa;
+  border: 1px solid #eaecef;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow: auto;
+  white-space: pre;
+  margin: 0 0 1rem 0;
+}
+
+.article-body pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  border: none;
+  white-space: inherit;
+}
+
+.article-body code {
+  background: rgba(27,31,35,0.05);
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+
+.article-body pre .line-number {
+  user-select: none;
+  opacity: 0.6;
+  padding-right: 0.5rem;
+}
+
 /* ==================== Add Section ==================== */
 .add-section {
   margin-top: 3rem;
