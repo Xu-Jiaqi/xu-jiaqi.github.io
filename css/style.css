@@ -432,6 +432,13 @@ main {
   white-space: pre-wrap;
 }
 
+/* MathJax formula rendering in Works */
+.article-body mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
+
 /* ==================== Add Section ==================== */
 .add-section {
   margin-top: 3rem;

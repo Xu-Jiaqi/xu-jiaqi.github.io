@@ -56,6 +56,32 @@
     });
   }
 
+  function typesetMath(scopeEl) {
+    const run = () => {
+      if (!window.MathJax || typeof window.MathJax.typesetPromise !== 'function') return;
+      try {
+        if (typeof window.MathJax.typesetClear === 'function') {
+          window.MathJax.typesetClear([scopeEl]);
+        }
+      } catch (e) {
+        // no-op: typesetClear is best effort
+      }
+      window.MathJax.typesetPromise([scopeEl]).catch((err) => {
+        console.error('MathJax render error:', err);
+      });
+    };
+
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      run();
+      return;
+    }
+
+    // Queue re-render until MathJax script is available.
+    if (Array.isArray(window.__mathjaxWaiters)) {
+      window.__mathjaxWaiters.push(run);
+    }
+  }
+
   function showWork(i) {
     activeIndex = i;
     const work = works[i];
@@ -74,6 +100,8 @@
           <div class="article-body">${body}</div>
         </div>
       `;
+
+      typesetMath(contentEl);
     } catch(e) {
       contentEl.innerHTML = `<div class="error-state">渲染失败：${e.message}</div>`;
     }

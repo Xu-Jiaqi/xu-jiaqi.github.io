@@ -48,6 +48,56 @@
   <script src="js/store.js"></script>
   <script src="js/showdown.min.js"></script>
   <script src="js/dompurify.min.js"></script>
+  <script>
+    // MathJax config for LaTeX support in Works markdown
+    window.__mathjaxWaiters = window.__mathjaxWaiters || [];
+    window.MathJax = {
+      loader: { load: ['[tex]/ams'] },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: { '[+]': ['ams'] }
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+
+    (function loadMathJax() {
+      const candidates = [
+        'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js'
+      ];
+
+      const onReady = () => {
+        const waiters = window.__mathjaxWaiters || [];
+        while (waiters.length) {
+          const fn = waiters.shift();
+          try { fn(); } catch (e) { console.error('Math waiter error:', e); }
+        }
+      };
+
+      const tryLoad = (idx) => {
+        if (idx >= candidates.length) {
+          console.warn('MathJax failed to load from all CDNs.');
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = candidates[idx];
+        script.async = true;
+        script.onload = onReady;
+        script.onerror = () => {
+          script.remove();
+          tryLoad(idx + 1);
+        };
+        document.head.appendChild(script);
+      };
+
+      tryLoad(0);
+    })();
+  </script>
   <script src="js/works.js"></script>
 </body>
 </html>
