@@ -101,5 +101,3 @@
 - Skill 说明（OpenClaw）： `~/.openclaw/workspace/skills/blog-thoughts/SKILL.md`
 
 ---
-
-如果你确认，我现在就把 README 写入仓库并提交（需要你的确认来 push 到远端）。
