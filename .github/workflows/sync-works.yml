@@ -30,6 +30,7 @@ jobs:
           import json
           import os
           from pathlib import Path
+          from datetime import datetime, timezone
 
           gist_token = os.environ.get('GIST_TOKEN', '')
 
@@ -47,7 +48,8 @@ jobs:
                 with open(txt_file, 'r', encoding='utf-8') as f:
                   content = f.read().strip()
                 filename = txt_file.name
-                time_str = dates.get(filename, str(os.path.getmtime(txt_file)))
+                mtime = os.path.getmtime(txt_file)
+                time_str = dates.get(filename, datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat())
                 thoughts.append({
                   'id': hash(filename) % 10**12,
                   'content': content,
@@ -77,7 +79,8 @@ jobs:
                     title = line[2:].strip()
                     break
                 filename = md_file.name
-                time_str = dates.get(filename, str(os.path.getmtime(md_file)))
+                wtime = os.path.getmtime(md_file)
+                time_str = dates.get(filename, datetime.fromtimestamp(wtime, tz=timezone.utc).isoformat())
                 works.append({
                   'id': hash(filename) % 10**12,
                   'title': title,
