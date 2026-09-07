@@ -327,7 +327,7 @@
 
     if (!pointerMoved) return;
 
-    const dy = pointerLastY - event.clientY;
+    const dy = event.clientY - pointerLastY;
     const dt = Math.max(8, now - pointerLastT) / 1000;
     const cardDelta = dy / 168;
     const instantVelocity = cardDelta / dt;
