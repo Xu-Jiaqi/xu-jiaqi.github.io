@@ -6,7 +6,7 @@
   <title>作品集 Works - Xu-Jiaqi</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="works-page">
   <header>
     <nav>
       <a href="index.html" class="logo">Xu-Jiaqi</a>
@@ -18,26 +18,84 @@
     </nav>
   </header>
 
-  <main class="works-layout">
-    <aside class="works-sidebar">
-      <div class="works-nav-group">
-        <h3>Papers</h3>
-        <ul class="article-list" id="paper-list">
-          <!-- Rendered by JS -->
-        </ul>
-      </div>
-      <div class="works-nav-group">
-        <h3>Notes</h3>
-        <ul class="article-list" id="note-list">
-          <!-- Rendered by JS -->
-        </ul>
-      </div>
-    </aside>
+  <main class="works-stage">
+    <div class="works-backdrop" aria-hidden="true">
+      <span class="works-backdrop-word">WORKS</span>
+      <span class="works-backdrop-line line-a"></span>
+      <span class="works-backdrop-line line-b"></span>
+      <span class="works-backdrop-mark mark-a">+</span>
+      <span class="works-backdrop-mark mark-b">×</span>
+    </div>
 
-    <section class="works-content" id="content">
-      <div class="content-placeholder">
-        <p>选择一个作品查看内容 / Select an article to view</p>
+    <section class="works-scene" aria-label="作品展示">
+      <div class="works-scene-leftnote" aria-hidden="true">
+        <span>ARCHIVE</span>
+        <span>SELECTED WORK</span>
       </div>
+
+      <div class="works-selected-wrap">
+        <div class="works-selected-card" id="feature-cover" aria-hidden="true">
+          <div class="selected-card-border"></div>
+          <div class="selected-card-art">
+            <span class="art-axis axis-x"></span>
+            <span class="art-axis axis-y"></span>
+            <span class="art-ring ring-a"></span>
+            <span class="art-ring ring-b"></span>
+            <span class="art-core"></span>
+            <span class="art-block block-a"></span>
+            <span class="art-block block-b"></span>
+            <span class="art-block block-c"></span>
+          </div>
+          <div class="selected-card-topline">
+            <span id="feature-cover-label">NOTE</span>
+            <span id="feature-cover-year">2026</span>
+          </div>
+          <div class="selected-card-bottom">
+            <span id="feature-cover-title">Work</span>
+            <span class="selected-card-arrow">↘</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="works-selected-copy">
+        <div class="works-counter">
+          <span id="work-current">01</span>
+          <span class="counter-line"></span>
+          <span id="work-total">03</span>
+        </div>
+        <div class="works-kicker" id="work-category">NOTE</div>
+        <h1 id="work-title">Loading…</h1>
+        <div class="works-date" id="work-date"></div>
+        <p class="works-summary" id="work-summary"></p>
+        <button class="works-read-button" id="work-read" type="button">
+          <span class="read-icon">↘</span>
+          <span>阅读正文</span>
+        </button>
+      </div>
+
+      <aside class="works-deck-wrap" aria-label="作品封面滑轨">
+        <div class="deck-side-label" aria-hidden="true">
+          <span>WORK INDEX</span>
+          <span>SCROLL / DRAG</span>
+        </div>
+        <div class="works-deck-viewport">
+          <div class="works-deck" id="works-deck" tabindex="0"></div>
+        </div>
+        <div class="deck-progress" id="deck-progress" aria-hidden="true"></div>
+      </aside>
+
+      <div class="works-scene-caption" aria-hidden="true">
+        <strong>作品集</strong>
+        <span>RESEARCH · PROJECTS · PAPERS · NOTES</span>
+      </div>
+    </section>
+
+    <section class="works-article-shell" id="works-article-shell" hidden>
+      <div class="works-article-toolbar">
+        <span id="article-heading">Article</span>
+        <button id="article-close" type="button" aria-label="关闭正文">×</button>
+      </div>
+      <article class="article-body works-article-body" id="article-body"></article>
     </section>
   </main>
 
@@ -49,7 +107,6 @@
   <script src="js/showdown.min.js"></script>
   <script src="js/dompurify.min.js"></script>
   <script>
-    // MathJax config for LaTeX support in Works markdown
     window.__mathjaxWaiters = window.__mathjaxWaiters || [];
     window.MathJax = {
       loader: { load: ['[tex]/ams'] },
@@ -70,7 +127,6 @@
         'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
         'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js'
       ];
-
       const onReady = () => {
         const waiters = window.__mathjaxWaiters || [];
         while (waiters.length) {
@@ -78,23 +134,15 @@
           try { fn(); } catch (e) { console.error('Math waiter error:', e); }
         }
       };
-
       const tryLoad = (idx) => {
-        if (idx >= candidates.length) {
-          console.warn('MathJax failed to load from all CDNs.');
-          return;
-        }
+        if (idx >= candidates.length) return;
         const script = document.createElement('script');
         script.src = candidates[idx];
         script.async = true;
         script.onload = onReady;
-        script.onerror = () => {
-          script.remove();
-          tryLoad(idx + 1);
-        };
+        script.onerror = () => { script.remove(); tryLoad(idx + 1); };
         document.head.appendChild(script);
       };
-
       tryLoad(0);
     })();
   </script>
