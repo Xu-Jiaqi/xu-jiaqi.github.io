@@ -104,6 +104,7 @@
   function applyDeckTransforms(immediate) {
     const cards = [...deck.querySelectorAll('.deck-card')];
     deck.classList.toggle('is-dragging', immediate);
+    deck.style.setProperty('--deck-drag-y', dragY + 'px');
 
     cards.forEach((card, i) => {
       let offset = i - activeIndex;
@@ -112,24 +113,19 @@
         if (offset > half) offset -= works.length;
         if (offset < -half) offset += works.length;
       }
-      const abs = Math.abs(offset);
-      const y = offset * 78;
-      const x = abs * 18 + (offset < 0 ? -6 : 9);
-      const z = -abs * 135;
-      const scale = Math.max(0.68, 1 - abs * 0.12);
-      const rotateZ = offset * 4.8;
-      const rotateY = -13 + offset * -2.5;
 
-      card.style.setProperty('--card-y', y + '%');
-      card.style.setProperty('--card-x', x + 'px');
-      card.style.setProperty('--card-z', z + 'px');
-      card.style.setProperty('--card-scale', scale);
-      card.style.setProperty('--card-rotate-z', rotateZ + 'deg');
-      card.style.setProperty('--card-rotate-y', rotateY + 'deg');
+      let slot = 'hidden';
+      if (offset === 0) slot = 'top-far';
+      else if (offset === 1) slot = 'mid-right';
+      else if (offset === -1) slot = 'lower-left';
+      else if (offset === 2) slot = 'bottom-far';
+      else if (offset === -2) slot = 'top-back';
+
+      card.dataset.slot = slot;
+      card.dataset.variant = String((i + Math.abs(offset) * 2) % 5);
       card.style.setProperty('--drag-y', dragY + 'px');
-      card.style.zIndex = String(100 - Math.min(abs, 5) * 10);
-      card.style.opacity = abs > 3 ? '0' : String(Math.max(0.18, 1 - abs * 0.22));
-      card.style.pointerEvents = abs > 3 ? 'none' : 'auto';
+      card.style.opacity = slot === 'hidden' ? '0' : '1';
+      card.style.pointerEvents = slot === 'hidden' ? 'none' : 'auto';
       card.classList.toggle('active', i === activeIndex);
       card.setAttribute('aria-current', i === activeIndex ? 'true' : 'false');
     });
@@ -204,13 +200,7 @@
     } catch (_) {}
     pointerId = null;
 
-    if (!wasCaptured) {
-      const rect = deck.getBoundingClientRect();
-      const relativeY = event.clientY - (rect.top + rect.height / 2);
-      if (relativeY > 92) selectWork(activeIndex + 1);
-      else if (relativeY < -92) selectWork(activeIndex - 1);
-      return;
-    }
+    if (!wasCaptured) return;
     if (distance < -48) selectWork(activeIndex + 1);
     else if (distance > 48) selectWork(activeIndex - 1);
     else applyDeckTransforms(false);
