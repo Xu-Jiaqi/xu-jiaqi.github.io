@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Helper: ensure repo up-to-date then commit and push
+# Build, validate, commit and optionally push the site.
 # Usage: ./scripts/git_commit_push.sh -m "commit message" [--no-push]
 
 MSG=""
 NOPUSH=0
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -m|--message)
       shift
+      [[ $# -gt 0 ]] || { echo "Missing commit message" >&2; exit 2; }
       MSG="$1"
       shift
       ;;
@@ -18,54 +20,48 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      echo "Unknown arg: $1" >&2
-      exit 1
+      echo "Unknown argument: $1" >&2
+      exit 2
       ;;
   esac
 done
 
-if [[ -z "$MSG" ]]; then
-  echo "Commit message required. Use -m \"message\"" >&2
-  exit 2
-fi
+[[ -n "$MSG" ]] || { echo 'Commit message required. Use -m "message".' >&2; exit 2; }
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_DIR"
 
-# stash untracked changes not relevant? use autostash with rebase
-echo "-> Fetching latest and rebasing"
-# Ensure working tree has no unmerged files
 if git ls-files -u | grep -q .; then
-  echo "Error: repository has unmerged files. Resolve conflicts first." >&2
+  echo "Repository has unresolved merge conflicts." >&2
   exit 3
 fi
 
-git fetch origin
-# attempt rebase with autostash (if local commits exist)
-if git rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
-  CUR_BRANCH=$(git rev-parse --abbrev-ref HEAD || echo '')
-# If detached HEAD, default to 'main'
-if [[ "$CUR_BRANCH" == "HEAD" || -z "$CUR_BRANCH" ]]; then
-  CUR_BRANCH=main
-fi
-else
-  CUR_BRANCH="main"
-fi
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+[[ "$BRANCH" != "HEAD" ]] || BRANCH=main
 
-git pull --rebase --autostash origin "$CUR_BRANCH"
+echo "-> Updating from origin/$BRANCH"
+git pull --rebase --autostash origin "$BRANCH"
 
-# Add and commit
+echo "-> Building generated data"
+python3 scripts/site.py build
+
+echo "-> Validating site"
+python3 scripts/site.py check
+
 echo "-> Staging changes"
 git add -A
 
-echo "-> Committing: $MSG"
-git commit -m "$MSG" || echo "No changes to commit"
-
-if [[ $NOPUSH -eq 0 ]]; then
-  echo "-> Pushing to origin/$CUR_BRANCH"
-  git push origin "$CUR_BRANCH"
-else
-  echo "-> Skipping push (--no-push)"
+if git diff --cached --quiet; then
+  echo "No changes to commit."
+  exit 0
 fi
 
-echo "Done." 
+git status --short
+git commit -m "$MSG"
+
+if [[ $NOPUSH -eq 0 ]]; then
+  echo "-> Pushing origin/$BRANCH"
+  git push origin "$BRANCH"
+else
+  echo "-> Push skipped (--no-push)"
+fi

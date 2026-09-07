@@ -1,51 +1,108 @@
-# xu-jiaqi.github.io
+# Xu-Jiaqi Personal Site
 
-个人网站内容管理与发布。
+静态个人主页。当前同时部署在 GitHub Pages 和 `https://nansea.xyz/profile/`；cloud 上的工作目录为 `/home/ubuntu/profile`。
 
-## 仓库
+## 目录结构
 
-- 本地：`/home/nansea/User/SelfProfile`
-- 远程：`git@github.com:Xu-Jiaqi/xu-jiaqi.github.io.git`（分支：`main`）
+| 路径 | 作用 |
+|---|---|
+| `_thoughts/*.txt` | Thought 源文件 |
+| `_works/Notes/*.md` | Note 源文件 |
+| `_works/Papers/*.md` | Paper 源文件 |
+| `_dates/thoughts_dates.json` | Thought 发布时间 |
+| `_dates/works_dates.json` | Work 发布时间，键格式为 `Notes/xxx.md` / `Papers/xxx.md` |
+| `data/*.json` | **自动生成**，前端读取；不要手改 |
+| `scripts/site.py` | 内容添加、构建和校验的统一入口 |
+| `scripts/git_commit_push.sh` | 构建 + 校验 + commit + push |
+| `css/style.css` | 全站样式 |
+| `js/store.js` | 本地 JSON 数据读取与缓存 |
+| `js/thoughts.js` | Thoughts 页面逻辑 |
+| `js/works.js` | Works 页面逻辑 |
 
-## 关键文件
+## 日常更新
 
-| 路径 | 用途 |
-|------|------|
-| `_thoughts/NNN.txt` | Thought 原文 |
-| `_works/Notes/*.md` | Note 原文 |
-| `_dates/thoughts_dates.json` | 文件名 → UTC 时间 |
-| `_dates/works_dates.json` | 同上（Notes） |
-| `data/thoughts.json` | **前端读取入口** |
-| `data/works.json` | Notes 前端入口 |
-| `scripts/add_thought.py` | 发布 Thought（自动更新三处 + commit/push） |
-| `scripts/add_note.py` | 发布 Note（同上，支持 --local-only） |
-| `scripts/verify_publish.py` | 发布后检查 Actions + 线上数据 |
-
-## 常用命令
+### 添加 Thought
 
 ```bash
-# 发 Thought
-python3 scripts/add_thought.py "内容" --push
+cd /home/ubuntu/profile
+python3 scripts/site.py add-thought "内容"
+./scripts/git_commit_push.sh -m "content: add thought"
+```
 
-# 发 Note
-python3 scripts/add_note.py "内容"
+### 添加 Note / Paper
 
-# 验证
-python3 scripts/verify_publish.py --expect "内容"
+先准备 Markdown 文件，然后：
+
+```bash
+python3 scripts/site.py add-note "标题" /path/to/note.md
+python3 scripts/site.py add-paper "标题" /path/to/paper.md
+./scripts/git_commit_push.sh -m "content: add work"
+```
+
+添加命令会自动写入日期并重新生成 `data/*.json`。
+
+如需指定时间：
+
+```bash
+python3 scripts/site.py add-thought "内容" --time "2026-09-07T03:30:00Z"
+```
+
+## 修改已有内容
+
+直接修改 `_thoughts/` 或 `_works/` 中的源文件，然后：
+
+```bash
+python3 scripts/site.py build
+python3 scripts/site.py check
+./scripts/git_commit_push.sh -m "content: update ..."
+```
+
+不要直接编辑 `data/thoughts.json` 或 `data/works.json`。
+
+## 常用维护命令
+
+```bash
+# 从源文件重新生成前端数据
+python3 scripts/site.py build
+
+# 检查数据同步、日期、重复 ID 和本地资源引用
+python3 scripts/site.py check
+
+# 将旧版 work 日期键转换为 Notes/... / Papers/... 形式
+python3 scripts/site.py migrate-dates
 ```
 
 ## 数据链路
 
-每次发布必须同步更新三处：`_thoughts/` → `_dates/` → `data/`。前端优先读 `data/thoughts.json`。
+```text
+_thoughts / _works
+       +
+     _dates
+       |
+       v
+scripts/site.py build
+       |
+       v
+ data/*.json
+       |
+       v
+   浏览器页面
+```
+
+`data/*.json` 中的 ID 使用稳定哈希生成，同一内容文件在不同机器、不同构建中保持一致。
 
 ## CI
 
-- `Sync to Gist`：push 后自动同步 data 到 Gist
-- `pages-build-deployment`：自动构建部署
-- 排查：`gh run list --limit 10` → `gh run view <id> --log-failed`
+`.github/workflows/build-site.yml` 在源内容、日期或构建脚本变化时：
 
-## 常见坑
+1. 运行 `scripts/site.py build`
+2. 运行 `scripts/site.py check`
+3. 如果生成的数据变化，则由 GitHub Actions 自动提交 `data/*.json`
 
-1. 在错误目录操作（必须在 SelfProfile）
-2. 只更新 `_thoughts` 忘了 `data/thoughts.json`
-3. workflow 回退用 `os.path.getmtime()` 产生 Unix 时间戳 → 前端 `new Date()` 解析错误
+前端不再依赖 Gist；站点内容完全来自仓库内的静态 JSON。
+
+## cloud 部署
+
+Caddy 将 `/home/ubuntu/profile` 只读挂载到站点容器，因此 cloud 工作区中文件修改后会立即反映到 `https://nansea.xyz/profile/`。
+
+正式发布前仍应执行 `scripts/site.py check` 并 push 到 GitHub，保证 cloud 与仓库一致。

@@ -88,21 +88,6 @@ main {
   margin-top: 0.5rem;
 }
 
-/* ==================== Page Header ==================== */
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 300;
-}
-
-.page-header p {
-  color: var(--text-light);
-  margin-top: 0.25rem;
-}
-
 /* ==================== Profile Detail ==================== */
 .profile-detail {
   padding: 2rem;
@@ -143,11 +128,6 @@ main {
 .profile-card:hover {
   border-color: #ccc;
   background: #fafafa;
-}
-
-.profile-avatar {
-  font-size: 3rem;
-  line-height: 1;
 }
 
 .profile-info {
@@ -477,74 +457,6 @@ main {
   user-select: none;
   opacity: 0.6;
   padding-right: 0.5rem;
-}
-
-/* ==================== Add Section ==================== */
-.add-section {
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
-}
-
-.add-section h3 {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-light);
-  margin-bottom: 1rem;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-input[type="text"] {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1rem;
-  font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
-}
-
-textarea {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1rem;
-  font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
-  resize: vertical;
-}
-
-input:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--text);
-}
-
-button[type="submit"] {
-  align-self: flex-start;
-  padding: 0.6rem 1.5rem;
-  background: var(--text);
-  color: var(--bg);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-button[type="submit"]:hover {
-  opacity: 0.85;
-}
-
-button[type="submit"]:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* ==================== States ==================== */

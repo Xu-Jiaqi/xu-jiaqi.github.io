@@ -119,7 +119,7 @@
 
   (async function init() {
     try {
-      thoughts = await GitHubStore.loadThoughts();
+      thoughts = await SiteStore.loadThoughts();
       render();
       startTimer();
     } catch (err) {

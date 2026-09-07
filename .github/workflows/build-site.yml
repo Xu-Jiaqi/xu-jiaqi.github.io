@@ -1,0 +1,38 @@
+name: Build site data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '_thoughts/**'
+      - '_works/**'
+      - '_dates/**'
+      - 'scripts/site.py'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build generated data
+        run: python3 scripts/site.py build
+
+      - name: Validate site
+        run: python3 scripts/site.py check
+
+      - name: Commit generated data when needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/thoughts.json data/works.json
+          if git diff --cached --quiet; then
+            echo "Generated data already up to date."
+          else
+            git commit -m "ci: update generated site data [skip ci]"
+            git push origin HEAD:main
+          fi

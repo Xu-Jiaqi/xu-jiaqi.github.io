@@ -1,130 +1,57 @@
-// GitHub Gist persistent store (read-only)
-// 读取：优先使用本地 /data/* 静态文件（如果存在），否则回退到公开 Gist
-// 缓存：sessionStorage，TTL 5 分钟
+// Local static JSON store with sessionStorage cache.
+// data/*.json is generated from _thoughts/_works by scripts/site.py.
 
-const GIST_ID = 'c54f62bb3a10ff3d8dc8689d06b4ff20';
-const CACHE_KEY = 'gist_cache_v2';
+const CACHE_KEY = 'site_data_v1';
 const CACHE_TTL = 5 * 60 * 1000;
 
-function getCache() {
+function readCache() {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) return {};
     const parsed = JSON.parse(raw);
-    // 兼容两种存储格式：{ data: {...} } 或 直接 data
-    const data = parsed && parsed.data ? parsed.data : parsed;
-    const timestamp = data && data.timestamp ? data.timestamp : 0;
-    if (!timestamp || (Date.now() - timestamp) > CACHE_TTL) {
+    if (!parsed.timestamp || Date.now() - parsed.timestamp > CACHE_TTL) {
       sessionStorage.removeItem(CACHE_KEY);
-      return null;
+      return {};
     }
-    return data; // { thoughts, works, timestamp }
-  } catch (e) {
-    return null;
+    return parsed;
+  } catch (_) {
+    return {};
   }
 }
 
-function setCache(partial) {
+function writeCache(partial) {
   try {
-    let existingWrapped = {};
-    try {
-      existingWrapped = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
-    } catch (e) {}
-    const existing = existingWrapped && existingWrapped.data ? existingWrapped.data : (existingWrapped || {});
-    const merged = Object.assign({}, existing, partial, { timestamp: Date.now() });
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: merged }));
-  } catch (e) {}
+    const current = readCache();
+    const next = Object.assign({}, current, partial, { timestamp: Date.now() });
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(next));
+  } catch (_) {}
 }
 
-async function fetchLocalData(path) {
-  try {
-    const resp = await fetch(path, { cache: 'no-cache' });
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch (e) {
-    return null;
-  }
-}
+async function loadDataset(name) {
+  const cached = readCache();
+  if (Array.isArray(cached[name])) return cached[name];
 
-async function fetchPublicGist() {
-  const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-  if (!response.ok) throw new Error('获取数据失败');
-  return response.json();
-}
-
-// ========== Thoughts ==========
-
-async function loadThoughts() {
-  const cached = getCache();
-  if (cached && cached.thoughts) return cached.thoughts;
-
-  // 尝试本地静态文件
-  const local = await fetchLocalData('data/thoughts.json');
-  if (local && local.thoughts) {
-    setCache({ thoughts: local.thoughts });
-    return local.thoughts;
+  const response = await fetch(`data/${name}.json`, { cache: 'no-cache' });
+  if (!response.ok) {
+    throw new Error(`Failed to load data/${name}.json (${response.status})`);
   }
 
-  // 回退到 Gist
-  const gist = await fetchPublicGist();
-  const file = gist.files['thoughts.json'];
-  const thoughts = file ? JSON.parse(file.content).thoughts || [] : [];
-
-  setCache({ thoughts });
-  return thoughts;
-}
-
-// ========== Works ==========
-
-async function loadWorks() {
-  const cached = getCache();
-  if (cached && cached.works) return cached.works;
-
-  const local = await fetchLocalData('data/works.json');
-  if (local && local.works) {
-    setCache({ works: local.works });
-    return local.works;
+  const payload = await response.json();
+  const items = payload[name];
+  if (!Array.isArray(items)) {
+    throw new Error(`Invalid data/${name}.json format`);
   }
 
-  const gist = await fetchPublicGist();
-  const file = gist.files['works.json'];
-  const works = file ? JSON.parse(file.content).works || [] : [];
-
-  setCache({ works });
-  return works;
+  writeCache({ [name]: items });
+  return items;
 }
 
-// 预加载（首页调用，提前拉取数据）
 async function preload() {
-  try {
-    let cache = null;
-
-    const localThoughts = await fetchLocalData('data/thoughts.json');
-    const localWorks = await fetchLocalData('data/works.json');
-
-    if (localThoughts || localWorks) {
-      cache = {
-        thoughts: localThoughts ? localThoughts.thoughts || [] : [],
-        works: localWorks ? localWorks.works || [] : [],
-        timestamp: Date.now()
-      };
-    } else {
-      const gist = await fetchPublicGist();
-      const thoughtsFile = gist.files['thoughts.json'];
-      const worksFile = gist.files['works.json'];
-      cache = {
-        thoughts: thoughtsFile ? JSON.parse(thoughtsFile.content).thoughts || [] : [],
-        works: worksFile ? JSON.parse(worksFile.content).works || [] : [],
-        timestamp: Date.now()
-      };
-    }
-
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: cache }));
-  } catch (e) {}
+  await Promise.allSettled([loadDataset('thoughts'), loadDataset('works')]);
 }
 
-window.GitHubStore = {
-  loadThoughts,
-  loadWorks,
+window.SiteStore = {
+  loadThoughts: () => loadDataset('thoughts'),
+  loadWorks: () => loadDataset('works'),
   preload
 };

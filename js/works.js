@@ -117,7 +117,7 @@
 
   (async function init() {
     try {
-      works = await GitHubStore.loadWorks();
+      works = await SiteStore.loadWorks();
       renderLists();
       if (works.length > 0) {
         showWork(0);
