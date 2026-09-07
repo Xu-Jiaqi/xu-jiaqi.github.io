@@ -3,9 +3,13 @@
   let selectedIndex = 0;
 
   let railPosition = 0;
-  let railTarget = 0;
+  let railVisualPosition = 0;
+  let railVelocity = 0;
   let railRaf = null;
-  let snapTimer = null;
+  let railLastFrame = 0;
+  let railIdleUntil = 0;
+  let railSnapTarget = null;
+  let railInteracting = false;
 
   let pointerStartY = null;
   let pointerLastY = null;
@@ -193,11 +197,14 @@
   function renderRail() {
     if (!works.length) return;
 
+    deck.dataset.railPosition = railPosition.toFixed(4);
+    deck.dataset.railVisualPosition = railVisualPosition.toFixed(4);
+    deck.dataset.railVelocity = railVelocity.toFixed(4);
     syncRailCards();
     const rect = deck.getBoundingClientRect();
 
     for (const [seq, card] of railCards.entries()) {
-      const p = seq - railPosition;
+      const p = seq - railVisualPosition;
       const s = pathStateAt(p);
       const width = Math.max(64, s.w * rect.width);
       const zOrder = Math.round(100 + s.z);
@@ -214,41 +221,81 @@
     }
   }
 
-  function railTick() {
-    railRaf = null;
+  function railTick(now) {
+    if (!railLastFrame) railLastFrame = now;
+    const dt = clamp((now - railLastFrame) / 1000, 0.001, 0.034);
+    railLastFrame = now;
 
-    const diff = railTarget - railPosition;
-    if (Math.abs(diff) < 0.001) {
-      railPosition = railTarget;
+    if (!railInteracting) {
+      const canSnap = now >= railIdleUntil;
+
+      if (!canSnap) {
+        railPosition += railVelocity * dt;
+        railVelocity *= Math.exp(-2.15 * dt);
+      } else {
+        if (railSnapTarget == null) {
+          railSnapTarget = Math.round(railPosition + railVelocity * 0.30);
+        }
+
+        const displacement = railSnapTarget - railPosition;
+        const spring = 34.0;
+        const damping = 8.1;
+        railVelocity += (spring * displacement - damping * railVelocity) * dt;
+        railPosition += railVelocity * dt;
+      }
+    }
+
+    const visualFollow = 1 - Math.exp(-(railInteracting ? 24 : 18) * dt);
+    railVisualPosition += (railPosition - railVisualPosition) * visualFollow;
+    renderRail();
+
+    const snapError = railSnapTarget == null ? 1 : Math.abs(railSnapTarget - railPosition);
+    const visualError = Math.abs(railPosition - railVisualPosition);
+    const stillMoving =
+      railInteracting ||
+      now < railIdleUntil ||
+      Math.abs(railVelocity) > 0.006 ||
+      snapError > 0.0015 ||
+      visualError > 0.0015;
+
+    if (!stillMoving) {
+      railPosition = railSnapTarget == null ? railPosition : railSnapTarget;
+      railVelocity = 0;
+      railSnapTarget = null;
+      railVisualPosition = railPosition;
+      railLastFrame = 0;
       renderRail();
+      railRaf = null;
       return;
     }
 
-    railPosition += diff * 0.17;
-    renderRail();
     railRaf = requestAnimationFrame(railTick);
   }
 
   function ensureRailTick() {
-    if (railRaf == null) railRaf = requestAnimationFrame(railTick);
+    if (railRaf == null) {
+      railLastFrame = 0;
+      railRaf = requestAnimationFrame(railTick);
+    }
   }
 
-  function settleRail(delay) {
-    clearTimeout(snapTimer);
-    snapTimer = setTimeout(() => {
-      railTarget = Math.round(railTarget);
-      ensureRailTick();
-    }, delay);
+  function kickRail(velocityImpulse, idleDelay) {
+    railSnapTarget = null;
+    railVelocity = clamp(railVelocity + velocityImpulse, -5.4, 5.4);
+    railIdleUntil = performance.now() + idleDelay;
+    ensureRailTick();
   }
 
   function onWheel(event) {
     if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
     event.preventDefault();
 
-    const magnitude = clamp(Math.abs(event.deltaY) * 0.004, 0.10, 0.78);
-    railTarget += Math.sign(event.deltaY) * magnitude;
-    ensureRailTick();
-    settleRail(120);
+    const abs = Math.abs(event.deltaY);
+    const magnitude = abs >= 80
+      ? clamp(abs * 0.0085, 1.50, 2.60)
+      : clamp(abs * 0.0120, 0.12, 0.68);
+    const impulse = Math.sign(event.deltaY) * magnitude;
+    kickRail(impulse, 145);
   }
 
   function onPointerDown(event) {
@@ -260,6 +307,11 @@
     pointerVelocity = 0;
     pointerMoved = false;
     pointerId = event.pointerId;
+
+    railInteracting = true;
+    railSnapTarget = null;
+    railVelocity *= 0.28;
+    ensureRailTick();
   }
 
   function onPointerMove(event) {
@@ -267,6 +319,7 @@
 
     const now = performance.now();
     const totalDelta = pointerStartY - event.clientY;
+
     if (!pointerMoved && Math.abs(totalDelta) > 5) {
       pointerMoved = true;
       try { deck.setPointerCapture(pointerId); } catch (_) {}
@@ -275,16 +328,16 @@
     if (!pointerMoved) return;
 
     const dy = pointerLastY - event.clientY;
-    const dt = Math.max(8, now - pointerLastT);
-    const cardDelta = dy / 165;
+    const dt = Math.max(8, now - pointerLastT) / 1000;
+    const cardDelta = dy / 168;
+    const instantVelocity = cardDelta / dt;
 
     railPosition += cardDelta;
-    railTarget = railPosition;
-    pointerVelocity = (cardDelta / dt) * 1000;
+    pointerVelocity = pointerVelocity * 0.66 + instantVelocity * 0.34;
+    railVelocity = pointerVelocity;
 
     pointerLastY = event.clientY;
     pointerLastT = now;
-    renderRail();
   }
 
   function onPointerUp(event) {
@@ -292,6 +345,7 @@
 
     const moved = pointerMoved;
     pointerStartY = null;
+    railInteracting = false;
 
     try {
       if (moved && deck.hasPointerCapture(pointerId)) deck.releasePointerCapture(pointerId);
@@ -300,9 +354,15 @@
     pointerId = null;
 
     if (moved) {
-      suppressClickUntil = performance.now() + 140;
-      railTarget = railPosition + clamp(pointerVelocity * 0.13, -0.62, 0.62);
-      railTarget = Math.round(railTarget);
+      suppressClickUntil = performance.now() + 150;
+      railVelocity = clamp(pointerVelocity * 0.82, -4.7, 4.7);
+      railIdleUntil = performance.now() + 72;
+      railSnapTarget = null;
+      ensureRailTick();
+    } else {
+      railVelocity = 0;
+      railSnapTarget = Math.round(railPosition);
+      railIdleUntil = performance.now();
       ensureRailTick();
     }
 
@@ -314,12 +374,10 @@
   function onKeyDown(event) {
     if (event.key === 'ArrowDown' || event.key === 'PageDown') {
       event.preventDefault();
-      railTarget = Math.round(railTarget + 1);
-      ensureRailTick();
+      kickRail(2.05, 70);
     } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
       event.preventDefault();
-      railTarget = Math.round(railTarget - 1);
-      ensureRailTick();
+      kickRail(-2.05, 70);
     }
   }
 
@@ -350,17 +408,65 @@
     const ring = selectedWrap.querySelector('.works-flip-ring');
     if (!ring) return;
 
+    const orbitA = ring.querySelector('.ring-orbit-a');
+    const orbitB = ring.querySelector('.ring-orbit-b');
+    const ghost = selectedWrap.querySelector('.works-flip-ghost');
+
     ring.getAnimations().forEach(a => a.cancel());
+    if (orbitA) orbitA.getAnimations().forEach(a => a.cancel());
+    if (orbitB) orbitB.getAnimations().forEach(a => a.cancel());
+    if (ghost) ghost.getAnimations().forEach(a => a.cancel());
+
+    if (ghost) {
+      ghost.animate([
+        { opacity: 0, transform: 'translate(-50%,-50%) translate3d(94px,-54px,0) rotateY(-62deg) rotateZ(16deg) scale(.64)' },
+        { opacity: .30, offset: .20 },
+        { opacity: .18, transform: 'translate(-50%,-50%) translate3d(36px,-22px,0) rotateY(-24deg) rotateZ(8deg) scale(.90)', offset: .55 },
+        { opacity: 0, transform: 'translate(-50%,-50%) translate3d(3px,-2px,0) rotateY(5deg) rotateZ(3deg) scale(1.03)' }
+      ], {
+        duration: 470,
+        easing: 'cubic-bezier(.16,.72,.18,1)',
+        fill: 'both'
+      });
+    }
+
     ring.animate([
-      { opacity: 0, transform: 'translate(-50%, -50%) scale(0.18) rotate(-18deg)' },
-      { opacity: 0.95, offset: 0.18 },
-      { opacity: 0.85, transform: 'translate(-50%, -50%) scale(0.78) rotate(8deg)', offset: 0.58 },
-      { opacity: 0, transform: 'translate(-50%, -50%) scale(1.20) rotate(20deg)' }
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(.12) rotate(-32deg)' },
+      { opacity: .78, transform: 'translate(-50%, -50%) scale(.38) rotate(-18deg)', offset: .18 },
+      { opacity: .94, transform: 'translate(-50%, -50%) scale(.88) rotate(5deg)', offset: .52 },
+      { opacity: .58, transform: 'translate(-50%, -50%) scale(1.10) rotate(18deg)', offset: .76 },
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(1.28) rotate(28deg)' }
     ], {
-      duration: 430,
-      easing: 'cubic-bezier(.16,.7,.18,1)',
+      duration: 590,
+      easing: 'cubic-bezier(.16,.72,.18,1)',
       fill: 'both'
     });
+
+    if (orbitA) {
+      orbitA.animate([
+        { opacity: 0, transform: 'translate(-50%, -50%) rotate(-50deg) scale(.45)' },
+        { opacity: .72, offset: .25 },
+        { opacity: .38, transform: 'translate(-50%, -50%) rotate(34deg) scale(1.12)', offset: .76 },
+        { opacity: 0, transform: 'translate(-50%, -50%) rotate(56deg) scale(1.28)' }
+      ], {
+        duration: 620,
+        easing: 'cubic-bezier(.2,.65,.16,1)',
+        fill: 'both'
+      });
+    }
+
+    if (orbitB) {
+      orbitB.animate([
+        { opacity: 0, transform: 'translate(-50%, -50%) rotate(42deg) scale(.30)' },
+        { opacity: .55, offset: .20 },
+        { opacity: .26, transform: 'translate(-50%, -50%) rotate(-34deg) scale(1.18)', offset: .72 },
+        { opacity: 0, transform: 'translate(-50%, -50%) rotate(-58deg) scale(1.34)' }
+      ], {
+        duration: 560,
+        easing: 'cubic-bezier(.15,.7,.2,1)',
+        fill: 'both'
+      });
+    }
   }
 
   async function selectWork(index, animated) {
@@ -378,22 +484,37 @@
 
     featureCover.getAnimations().forEach(a => a.cancel());
     selectedCopy.getAnimations().forEach(a => a.cancel());
+    featureBack.classList.remove('visible');
 
     const outCard = featureCover.animate([
-      { opacity: 1, transform: 'rotateY(7deg) rotateZ(2.5deg) scale(1)' },
-      { opacity: 0, transform: 'rotateY(22deg) rotateZ(-5deg) scale(.86)' }
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        transform: 'translate3d(0,0,0) rotateY(7deg) rotateZ(2.5deg) scale(1)'
+      },
+      {
+        opacity: .72,
+        filter: 'blur(.15px)',
+        transform: 'translate3d(-10px,5px,0) rotateY(15deg) rotateZ(0deg) scale(.97)',
+        offset: .48
+      },
+      {
+        opacity: 0,
+        filter: 'blur(.8px)',
+        transform: 'translate3d(-34px,14px,0) rotateY(28deg) rotateZ(-5deg) scale(.88)'
+      }
     ], {
-      duration: 105,
-      easing: 'cubic-bezier(.4,0,.8,.2)',
+      duration: 150,
+      easing: 'cubic-bezier(.42,0,.86,.34)',
       fill: 'both'
     });
 
     selectedCopy.animate([
       { opacity: 1, translate: '0 0' },
-      { opacity: 0, translate: '-18px 0' }
+      { opacity: 0, translate: '-16px 2px' }
     ], {
-      duration: 110,
-      easing: 'ease-out',
+      duration: 135,
+      easing: 'cubic-bezier(.35,0,.7,.2)',
       fill: 'both'
     });
 
@@ -402,19 +523,52 @@
 
     updateSelectedContent(next);
     runRingAnimation();
-
     featureBack.classList.add('visible');
 
     const inCard = featureCover.animate([
-      { opacity: 0, transform: 'rotateY(-28deg) rotateZ(-15deg) scale(.74)' },
-      { opacity: 1, transform: 'rotateY(-58deg) rotateZ(-12deg) scale(.83)', offset: 0.26 },
-      { opacity: 1, transform: 'rotateY(-89deg) rotateZ(-7deg) scale(.88)', offset: 0.48 },
-      { opacity: 1, transform: 'rotateY(89deg) rotateZ(-4deg) scale(.90)', offset: 0.52 },
-      { opacity: 1, transform: 'rotateY(34deg) rotateZ(1deg) scale(.97)', offset: 0.76 },
-      { opacity: 1, transform: 'rotateY(7deg) rotateZ(2.5deg) scale(1)' }
+      {
+        opacity: 0,
+        filter: 'blur(1.4px)',
+        boxShadow: '0 10px 24px rgba(0,0,0,.06)',
+        transform: 'translate3d(82px,-48px,0) rotateY(-72deg) rotateZ(14deg) scale(.66)'
+      },
+      {
+        opacity: .78,
+        filter: 'blur(.5px)',
+        boxShadow: '0 20px 48px rgba(0,0,0,.13)',
+        transform: 'translate3d(62px,-36px,0) rotateY(-58deg) rotateZ(11deg) scale(.76)',
+        offset: .18
+      },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        boxShadow: '0 30px 68px rgba(0,0,0,.17)',
+        transform: 'translate3d(35px,-20px,0) rotateY(-24deg) rotateZ(8deg) scale(.91)',
+        offset: .40
+      },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        boxShadow: '0 32px 72px rgba(0,0,0,.17)',
+        transform: 'translate3d(7px,-4px,0) rotateY(4deg) rotateZ(4deg) scale(1.045)',
+        offset: .67
+      },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        boxShadow: '0 25px 61px rgba(0,0,0,.145)',
+        transform: 'translate3d(-5px,3px,0) rotateY(11deg) rotateZ(1.5deg) scale(1.012)',
+        offset: .82
+      },
+      {
+        opacity: 1,
+        filter: 'blur(0px)',
+        boxShadow: '0 26px 65px rgba(0,0,0,.13)',
+        transform: 'translate3d(0,0,0) rotateY(7deg) rotateZ(2.5deg) scale(1)'
+      }
     ], {
-      duration: 405,
-      easing: 'cubic-bezier(.18,.72,.2,1)',
+      duration: 565,
+      easing: 'cubic-bezier(.16,.76,.17,1)',
       fill: 'both'
     });
 
@@ -423,12 +577,13 @@
     }, 205);
 
     selectedCopy.animate([
-      { opacity: 0, translate: '20px 0' },
+      { opacity: 0, translate: '22px 3px' },
+      { opacity: .35, translate: '10px 1px', offset: .35 },
       { opacity: 1, translate: '0 0' }
     ], {
-      duration: 255,
-      delay: 85,
-      easing: 'cubic-bezier(.2,.7,.2,1)',
+      duration: 330,
+      delay: 205,
+      easing: 'cubic-bezier(.18,.68,.2,1)',
       fill: 'both'
     });
 
@@ -438,6 +593,8 @@
     featureCover.getAnimations().forEach(a => a.cancel());
     selectedCopy.getAnimations().forEach(a => a.cancel());
     featureCover.style.opacity = '';
+    featureCover.style.filter = '';
+    featureCover.style.boxShadow = '';
     featureCover.style.transform = '';
     featureBack.classList.remove('visible');
     selectedCopy.style.opacity = '';
