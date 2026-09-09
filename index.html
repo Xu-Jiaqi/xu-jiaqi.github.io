@@ -17,7 +17,7 @@
   <link rel="canonical" href="https://nansea.xyz/profile/">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="home-page">
   <header>
     <nav>
       <a href="index.html" class="logo">Xu-Jiaqi</a>
@@ -62,6 +62,15 @@
     </section>
   </main>
 
+  <div class="home-companion" id="home-companion" data-pose="idle" aria-live="polite">
+    <div class="companion-bubble" role="status">
+      <span class="companion-bubble-text">你好，欢迎来到我的主页。</span>
+    </div>
+    <button class="companion-character" type="button" aria-label="网页小伙伴，点击切换状态">
+      <span class="mascot-sprite pose-idle" aria-hidden="true"></span>
+    </button>
+  </div>
+
   <footer>
     <p>&copy; 2026 Xu-Jiaqi</p>
   </footer>
@@ -70,5 +79,6 @@
   <script>
     SiteStore.preload();
   </script>
+  <script src="js/home-companion.js"></script>
 </body>
 </html>

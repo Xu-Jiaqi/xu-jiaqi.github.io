@@ -88,6 +88,154 @@ main {
   margin-top: 0.5rem;
 }
 
+/* ==================== Homepage Companion ==================== */
+.home-companion {
+  position: fixed;
+  right: clamp(0.75rem, 2.4vw, 2rem);
+  bottom: 0.8rem;
+  width: 150px;
+  height: 150px;
+  z-index: 90;
+  pointer-events: none;
+  transition: right 0.45s ease, bottom 0.45s ease;
+}
+
+.companion-character {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 110px;
+  height: 130px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  transform-origin: 50% 100%;
+  transition: transform 0.38s cubic-bezier(.2,.7,.2,1), opacity 0.25s ease;
+}
+
+.companion-character:focus-visible {
+  outline: 1px solid #999;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.mascot-sprite {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 110px;
+  height: 130px;
+  background-image: url('../assets/mascot-sprite.png');
+  background-repeat: no-repeat;
+  background-size: 440px 260px;
+  filter: contrast(1.04);
+  transform-origin: 50% 100%;
+}
+
+.pose-idle  { background-position:    0    0; }
+.pose-guide { background-position: -110px  0; }
+.pose-peek  { background-position: -220px  0; }
+.pose-sit   { background-position: -330px  0; }
+.pose-walk  { background-position:    0 -130px; }
+.pose-think { background-position: -110px -130px; }
+.pose-sleep { background-position: -220px -130px; }
+.pose-work  { background-position: -330px -130px; }
+
+.companion-bubble {
+  position: absolute;
+  right: 86px;
+  bottom: 92px;
+  width: max-content;
+  max-width: 210px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.96);
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  box-shadow: 0 7px 20px rgba(0,0,0,0.06);
+  opacity: 0;
+  transform: translate(8px, 6px) scale(.97);
+  transform-origin: right bottom;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(.2,.7,.2,1);
+  pointer-events: none;
+}
+
+.companion-bubble::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.companion-bubble.visible {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+.home-companion[data-pose="idle"] .companion-character {
+  animation: companion-idle 3.6s ease-in-out infinite;
+}
+
+.home-companion[data-pose="think"] .companion-character {
+  transform: translateY(4px) rotate(-1deg);
+}
+
+.home-companion[data-pose="sit"] .companion-character {
+  transform: translateY(7px);
+}
+
+.home-companion[data-pose="work"] .companion-character {
+  transform: translateY(8px) scale(1.02);
+}
+
+.home-companion.is-peeking {
+  right: -2.25rem;
+}
+
+.home-companion.is-peeking .companion-character {
+  transform: translateX(18px);
+}
+
+.home-companion.is-sleeping .companion-character {
+  transform: translateY(13px) scale(1.06);
+}
+
+.home-companion.is-walking .companion-character {
+  animation: companion-walk 2.55s cubic-bezier(.35,.05,.25,1) both;
+}
+
+@keyframes companion-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes companion-walk {
+  0% { transform: translateX(10px); }
+  45% { transform: translateX(-46px); }
+  52% { transform: translateX(-46px) scaleX(-1); }
+  100% { transform: translateX(6px) scaleX(-1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-companion *,
+  .home-companion *::before,
+  .home-companion *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
 /* ==================== Profile Detail ==================== */
 .profile-detail {
   padding: 2rem;
@@ -1541,6 +1689,37 @@ footer {
 
 /* ==================== Responsive ==================== */
 @media (max-width: 700px) {
+  .home-companion {
+    right: 0.35rem;
+    bottom: 0.25rem;
+    width: 118px;
+    height: 122px;
+  }
+
+  .companion-character {
+    width: 88px;
+    height: 104px;
+    transform: scale(.8);
+    transform-origin: right bottom;
+  }
+
+  .mascot-sprite {
+    width: 110px;
+    height: 130px;
+  }
+
+  .companion-bubble {
+    right: 68px;
+    bottom: 79px;
+    max-width: min(185px, 55vw);
+    font-size: 0.76rem;
+    padding: 0.6rem 0.72rem;
+  }
+
+  .home-companion.is-peeking {
+    right: -2.7rem;
+  }
+
   .cards {
     grid-template-columns: 1fr;
   }
