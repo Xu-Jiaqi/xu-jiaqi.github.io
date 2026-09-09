@@ -92,7 +92,7 @@ main {
 .home-companion {
   position: fixed;
   right: clamp(0.75rem, 2.4vw, 2rem);
-  bottom: 0.8rem;
+  bottom: max(0.8rem, env(safe-area-inset-bottom));
   width: 176px;
   height: 176px;
   z-index: 90;
@@ -104,7 +104,7 @@ main {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 132px;
+  width: 156px;
   height: 156px;
   border: 0;
   padding: 0;
@@ -121,28 +121,32 @@ main {
   border-radius: 8px;
 }
 
+/* Keep the original RGBA artwork: thresholding its alpha destroys facial detail.
+   Each verified WebP contains three columns and two rows. */
 .mascot-sprite {
   position: absolute;
   inset: 0;
   display: block;
-  width: 132px;
+  width: 156px;
   height: 156px;
-  background-image: url('../assets/mascot-sprite-vectorlike.png');
+  background-image: url('../assets/mascot-animations/idle.webp?v=20260909-display1');
   background-repeat: no-repeat;
-  background-size: 528px 312px;
+  background-size: 300% 200%;
+  background-position: 0 0;
   image-rendering: auto;
-  backface-visibility: hidden;
   transform-origin: 50% 100%;
 }
-
-.pose-idle  { background-position:    0    0; }
-.pose-guide { background-position: -132px   0; }
-.pose-peek  { background-position: -264px   0; }
-.pose-sit   { background-position: -396px   0; }
-.pose-walk  { background-position:    0 -156px; }
-.pose-think { background-position: -132px -156px; }
-.pose-sleep { background-position: -264px -156px; }
-.pose-work  { background-position: -396px -156px; }
+.pose-guide, .pose-peek, .pose-think, .pose-work {
+  background-image: url('../assets/mascot-animations/guide-peek.webp?v=20260909-display1');
+}
+.pose-idle  { background-position: 0 0; }
+.pose-guide { background-position: 50% 0; }
+.pose-peek  { background-position: 0 100%; }
+.pose-sit   { background-position: 50% 100%; }
+.pose-walk  { background-position: 100% 0; }
+.pose-think { background-position: 100% 100%; }
+.pose-sleep { background-position: 100% 100%; }
+.pose-work  { background-position: 50% 100%; }
 
 .companion-bubble {
   position: absolute;
@@ -200,11 +204,11 @@ main {
 }
 
 .home-companion.is-peeking {
-  right: -2.25rem;
+  right: clamp(0.75rem, 2.4vw, 2rem);
 }
 
 .home-companion.is-peeking .companion-character {
-  transform: translateX(18px);
+  transform: translateX(8px);
 }
 
 .home-companion.is-sleeping .companion-character {
@@ -1692,16 +1696,16 @@ footer {
 @media (max-width: 700px) {
   .home-companion {
     right: 0.35rem;
-    bottom: 0.25rem;
-    width: 138px;
-    height: 148px;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    width: 176px;
+    height: 176px;
+    transform: scale(.86);
+    transform-origin: right bottom;
   }
 
   .companion-character {
-    width: 132px;
+    width: 156px;
     height: 156px;
-    transform: scale(.86);
-    transform-origin: right bottom;
   }
 
   .companion-bubble {
@@ -1713,7 +1717,7 @@ footer {
   }
 
   .home-companion.is-peeking {
-    right: -2.7rem;
+    right: 0.35rem;
   }
 
   .cards {
