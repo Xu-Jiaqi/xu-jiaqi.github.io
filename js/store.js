@@ -31,7 +31,7 @@ async function loadDataset(name) {
   const cached = readCache();
 
   try {
-    const response = await fetch(`data/${name}.json`, { cache: no-store });
+    const response = await fetch(`data/${name}.json`, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`Failed to load data/${name}.json (${response.status})`);
     }
