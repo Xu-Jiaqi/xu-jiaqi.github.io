@@ -29,21 +29,25 @@ function writeCache(partial) {
 
 async function loadDataset(name) {
   const cached = readCache();
-  if (Array.isArray(cached[name])) return cached[name];
 
-  const response = await fetch(`data/${name}.json`, { cache: 'no-cache' });
-  if (!response.ok) {
-    throw new Error(`Failed to load data/${name}.json (${response.status})`);
+  try {
+    const response = await fetch(`data/${name}.json`, { cache: no-store });
+    if (!response.ok) {
+      throw new Error(`Failed to load data/${name}.json (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const items = payload[name];
+    if (!Array.isArray(items)) {
+      throw new Error(`Invalid data/${name}.json format`);
+    }
+
+    writeCache({ [name]: items });
+    return items;
+  } catch (error) {
+    if (Array.isArray(cached[name])) return cached[name];
+    throw error;
   }
-
-  const payload = await response.json();
-  const items = payload[name];
-  if (!Array.isArray(items)) {
-    throw new Error(`Invalid data/${name}.json format`);
-  }
-
-  writeCache({ [name]: items });
-  return items;
 }
 
 async function preload() {
