@@ -1749,3 +1749,220 @@ footer {
     padding-bottom: 1.5rem;
   }
 }
+
+/* ==================== Thoughts: compact previews + reader ==================== */
+.carousel-slide {
+  min-height: 300px;
+}
+
+.carousel-slide--long {
+  padding: 0;
+  min-height: 0;
+  height: 300px;
+  justify-content: stretch;
+}
+
+.thought-preview {
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  padding: 2.2rem 2.5rem 2rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.thought-preview .carousel-time {
+  margin-bottom: 1.15rem;
+}
+
+.thought-preview-title {
+  display: block;
+  max-width: 26ch;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.thought-preview-excerpt {
+  display: -webkit-box;
+  max-width: 62ch;
+  margin-top: 1.1rem;
+  color: var(--text-light);
+  font-size: 1rem;
+  line-height: 1.8;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.thought-preview-action {
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-bottom: 1px solid currentColor;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.thought-preview:hover .thought-preview-action,
+.thought-preview:focus-visible .thought-preview-action {
+  opacity: 0.55;
+}
+
+.thought-preview:focus-visible {
+  outline: 2px solid rgba(0,0,0,0.18);
+  outline-offset: -5px;
+}
+
+body.thought-reader-open {
+  overflow: hidden;
+}
+
+.thought-reader[hidden] {
+  display: none;
+}
+
+.thought-reader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: 1fr min(720px, 72vw);
+}
+
+.thought-reader-backdrop {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  border: 0;
+  background: rgba(245,245,245,0.72);
+  backdrop-filter: blur(4px);
+  cursor: default;
+}
+
+.thought-reader-panel {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -24px 0 60px rgba(0,0,0,0.08);
+  padding: clamp(4rem, 8vh, 6.5rem) clamp(2rem, 5vw, 4.5rem);
+}
+
+.thought-reader-close {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.6rem;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.thought-reader-time {
+  color: var(--text-light);
+  font-size: 0.84rem;
+  margin-bottom: 1.25rem;
+}
+
+.thought-reader-title {
+  max-width: 18ch;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.thought-reader-body {
+  max-width: 66ch;
+  margin-top: 2.4rem;
+  font-size: 1.06rem;
+  line-height: 2;
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+
+@media (max-width: 700px) {
+  .carousel-slide {
+    min-height: 280px;
+    padding: 2.1rem 1.65rem;
+  }
+
+  .carousel-slide--long {
+    padding: 0;
+    height: 280px;
+  }
+
+  .thought-preview {
+    height: 280px;
+    padding: 1.65rem 1.65rem 1.45rem;
+  }
+
+  .thought-preview-title {
+    max-width: 18ch;
+    font-size: 1.55rem;
+  }
+
+  .thought-preview-excerpt {
+    -webkit-line-clamp: 2;
+    font-size: 0.95rem;
+  }
+
+  .thought-reader {
+    display: block;
+  }
+
+  .thought-reader-backdrop {
+    display: none;
+  }
+
+  .thought-reader-panel {
+    position: absolute;
+    inset: 0;
+    border-left: 0;
+    box-shadow: none;
+    padding: 5.5rem 1.5rem 3rem;
+  }
+
+  .thought-reader-close {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .thought-reader-title {
+    max-width: 20ch;
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+  }
+
+  .thought-reader-body {
+    margin-top: 2rem;
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-slides,
+  .thought-preview,
+  .thought-reader * {
+    transition: none !important;
+  }
+}

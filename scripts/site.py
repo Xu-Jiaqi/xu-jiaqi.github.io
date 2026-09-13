@@ -77,6 +77,18 @@ def read_dates(path: Path) -> dict[str, str]:
     return data
 
 
+def thought_preview_fields(content: str) -> tuple[str | None, str]:
+    paragraphs = [part.strip() for part in content.split("\n\n") if part.strip()]
+    is_long = len(content) > 220 or len(paragraphs) > 1
+    if not is_long:
+        return None, content
+
+    title = paragraphs[0] if paragraphs else None
+    body = paragraphs[1] if len(paragraphs) > 1 else content
+    excerpt = body if len(body) <= 150 else body[:147].rstrip() + "…"
+    return title, excerpt
+
+
 def thought_items() -> list[dict]:
     dates = read_dates(THOUGHTS_DATES)
     items = []
@@ -89,8 +101,11 @@ def thought_items() -> list[dict]:
         content = path.read_text(encoding="utf-8").strip()
         if not content:
             raise ValueError(f"empty thought: _thoughts/{path.name}")
+        title, excerpt = thought_preview_fields(content)
         items.append({
             "id": stable_id(f"thought:{path.name}"),
+            "title": title,
+            "excerpt": excerpt,
             "content": content,
             "time": dates[path.name],
         })
