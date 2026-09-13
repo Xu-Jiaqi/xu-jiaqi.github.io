@@ -414,6 +414,8 @@ main {
 .carousel-content {
   font-size: 1.3rem;
   line-height: 1.8;
+  white-space: pre-line;
+  text-wrap: pretty;
 }
 
 .carousel-controls {
