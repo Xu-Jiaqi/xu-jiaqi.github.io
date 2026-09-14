@@ -1908,12 +1908,13 @@ body.thought-reader-open {
 
   .carousel-slide--long {
     padding: 0;
-    height: 280px;
+    min-height: 0;
+    height: 240px;
   }
 
   .thought-preview {
-    height: 280px;
-    padding: 1.65rem 1.65rem 1.45rem;
+    height: 240px;
+    padding: 1.35rem 1.5rem 1.25rem;
   }
 
   .thought-preview-title {
@@ -1922,8 +1923,8 @@ body.thought-reader-open {
   }
 
   .thought-preview-excerpt {
-    -webkit-line-clamp: 2;
-    font-size: 0.95rem;
+    -webkit-line-clamp: 1;
+    font-size: 0.92rem;
   }
 
   .thought-reader {
