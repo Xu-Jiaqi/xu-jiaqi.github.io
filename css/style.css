@@ -324,44 +324,103 @@ main {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 3rem;
+  border-top: 1px solid var(--text);
+  border-bottom: 1px solid var(--border);
 }
 
 .card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 2rem;
-  text-decoration: none;
+  position: relative;
+  min-height: 118px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
   color: var(--text);
-  transition: all 0.2s;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
 }
 
-.card:hover {
-  background: #fafafa;
-  border-color: #ccc;
+.card:nth-child(odd) {
+  border-right: 1px solid var(--border);
+}
+
+.card:nth-last-child(-n + 2) {
+  border-bottom: 0;
 }
 
 .card h2 {
-  font-size: 1.25rem;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 0;
+  font-size: 1.45rem;
   font-weight: 500;
 }
 
+.card h2 strong {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
 .card-en {
+  color: var(--text-light);
+  font-size: 0.92rem;
   font-weight: 400;
-  color: var(--text-light);
 }
 
-.card p {
-  color: var(--text-light);
-  margin-top: 0.5rem;
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 1px;
+  background: var(--text);
+  transition: width 0.22s ease;
 }
 
-.card .arrow {
-  display: inline-block;
-  margin-top: 1.5rem;
-  font-size: 1.2rem;
+.card:hover::before,
+.card:focus-visible::before {
+  width: 18px;
+}
+
+.card:focus-visible {
+  outline: 1px solid #aaa;
+  outline-offset: -1px;
+}
+
+@media (max-width: 700px) {
+  .cards {
+    grid-template-columns: 1fr;
+    margin-top: 2.25rem;
+  }
+
+  .card {
+    min-height: 82px;
+    padding: 0 0.25rem;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card:last-child {
+    border-bottom: 0;
+  }
+
+  .card h2 {
+    font-size: 1.25rem;
+  }
+
+  .card-en {
+    font-size: 0.86rem;
+  }
+
+  .card:hover::before,
+  .card:focus-visible::before {
+    width: 0;
+  }
 }
 
 /* ==================== Page Header ==================== */
