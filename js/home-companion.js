@@ -118,7 +118,9 @@
 
   bindTarget('.profile-card', 'peek', '这里是关于我的基本信息。');
   bindTarget('.cards .card[href="thoughts.html"]', 'sit', '这里放一些零散的思考与灵感。');
-  bindTarget('.cards .card[href="works.html"]', 'work', '项目、论文和长文都在这里。');
+  bindTarget('.cards .card[href="blogs.html"]', 'think', '这里是更完整的长文与研究记录。');
+  bindTarget('.cards .card[href="notes.html"]', 'sit', '这里放摘记、长笔记和值得留下的片段。');
+  bindTarget('.cards .card[href="works.html"]', 'work', '这里放真正做出来的项目与作品。');
 
   window.addEventListener('load', () => {
     setTimeout(() => {

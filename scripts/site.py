@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
-"""Content management and validation for the personal site.
-
-Source of truth:
-  _thoughts/*.txt
-  _works/Notes/*.md
-  _works/Papers/*.md
-  _dates/*.json
-
-Generated files:
-  data/thoughts.json
-  data/works.json
-"""
+"""Build and validate the synchronized personal-site content."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import shutil
+import re
 import sys
 from datetime import datetime, timezone
 from html.parser import HTMLParser
@@ -25,19 +14,11 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
-THOUGHTS_DIR = ROOT / "_thoughts"
-WORKS_DIR = ROOT / "_works"
-DATES_DIR = ROOT / "_dates"
 DATA_DIR = ROOT / "data"
-
-THOUGHTS_DATES = DATES_DIR / "thoughts_dates.json"
-WORKS_DATES = DATES_DIR / "works_dates.json"
-THOUGHTS_DATA = DATA_DIR / "thoughts.json"
-WORKS_DATA = DATA_DIR / "works.json"
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+CONTENT_DATES = ROOT / "_dates" / "content_dates.json"
+KINDS = ("blogs", "notes", "works", "thoughts")
+SOURCE_DIRS = {kind: ROOT / kind for kind in KINDS}
+DATA_FILES = {kind: DATA_DIR / f"{kind}.json" for kind in KINDS}
 
 
 def parse_iso(value: str) -> datetime:
@@ -50,6 +31,12 @@ def parse_iso(value: str) -> datetime:
     return dt
 
 
+def iso_from_mtime(path: Path) -> str:
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).replace(
+        microsecond=0
+    ).isoformat().replace("+00:00", "Z")
+
+
 def load_json(path: Path, default):
     if not path.exists():
         return default
@@ -59,8 +46,7 @@ def load_json(path: Path, default):
 
 def write_json(path: Path, value) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
-    path.write_text(text, encoding="utf-8")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def stable_id(key: str) -> int:
@@ -68,13 +54,83 @@ def stable_id(key: str) -> int:
     return int.from_bytes(digest, "big") % 1_000_000_000_000
 
 
-def read_dates(path: Path) -> dict[str, str]:
-    data = load_json(path, {})
-    if not isinstance(data, dict):
-        raise ValueError(f"{path.relative_to(ROOT)} must contain a JSON object")
-    for key, value in data.items():
+def source_files(kind: str) -> list[Path]:
+    root = SOURCE_DIRS[kind]
+    if not root.exists():
+        return []
+    return sorted(path for path in root.rglob("*.md") if path.is_file())
+
+
+def content_key(kind: str, path: Path) -> str:
+    return f"{kind}/{path.relative_to(SOURCE_DIRS[kind]).as_posix()}"
+
+
+def read_dates() -> dict[str, str]:
+    dates = load_json(CONTENT_DATES, {})
+    if not isinstance(dates, dict):
+        raise ValueError("_dates/content_dates.json must contain a JSON object")
+    for value in dates.values():
         parse_iso(value)
-    return data
+    return dates
+
+
+def ensure_dates(write: bool) -> dict[str, str]:
+    dates = read_dates()
+    changed = False
+    valid = set()
+    for kind in KINDS:
+        for path in source_files(kind):
+            key = content_key(kind, path)
+            valid.add(key)
+            if key not in dates:
+                dates[key] = iso_from_mtime(path)
+                changed = True
+    stale = set(dates) - valid
+    for key in stale:
+        dates.pop(key, None)
+        changed = True
+    if changed and write:
+        write_json(CONTENT_DATES, dict(sorted(dates.items())))
+    return dates
+
+
+def title_of(content: str, fallback: str) -> str:
+    for line in content.splitlines():
+        if line.startswith("# "):
+            title = line[2:].strip()
+            if title:
+                return title
+    return fallback
+
+
+def plain_excerpt(content: str, limit: int = 180) -> str:
+    lines: list[str] = []
+    in_fence = False
+    in_math = False
+    fence = chr(96) * 3
+    for raw in content.splitlines():
+        line = raw.strip()
+        if line.startswith(fence):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if line.startswith("$$"):
+            in_math = not in_math
+            continue
+        if in_math or not line or line.startswith(("#", "[^")):
+            continue
+        lines.append(line)
+        if len(" ".join(lines)) >= limit + 40:
+            break
+    plain = " ".join(lines)
+    plain = re.sub(r"\$[^$]+\$", "", plain)
+    plain = re.sub(r"\[\^[^\]]+\]", "", plain)
+    plain = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", plain)
+    plain = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", plain)
+    plain = re.sub(r"[*_>~]", "", plain)
+    plain = re.sub(r"\s+", " ", plain).strip()
+    return plain if len(plain) <= limit else plain[: limit - 1].rstrip() + "…"
 
 
 def thought_preview_fields(content: str) -> tuple[str | None, str]:
@@ -82,93 +138,70 @@ def thought_preview_fields(content: str) -> tuple[str | None, str]:
     is_long = len(content) > 220 or len(paragraphs) > 1
     if not is_long:
         return None, content
-
     title = paragraphs[0] if paragraphs else None
+    if title and title.startswith("# "):
+        title = title[2:].strip()
     body = paragraphs[1] if len(paragraphs) > 1 else content
-    excerpt = body if len(body) <= 150 else body[:147].rstrip() + "…"
-    return title, excerpt
+    return title, plain_excerpt(body, 150)
 
 
-def thought_items() -> list[dict]:
-    dates = read_dates(THOUGHTS_DATES)
-    items = []
-    if not THOUGHTS_DIR.exists():
-        return items
-
-    for path in sorted(THOUGHTS_DIR.glob("*.txt")):
-        if path.name not in dates:
-            raise ValueError(f"missing date for _thoughts/{path.name}")
-        content = path.read_text(encoding="utf-8").strip()
-        if not content:
-            raise ValueError(f"empty thought: _thoughts/{path.name}")
-        title, excerpt = thought_preview_fields(content)
-        items.append({
-            "id": stable_id(f"thought:{path.name}"),
-            "title": title,
-            "excerpt": excerpt,
-            "content": content,
-            "time": dates[path.name],
-        })
-
-    items.sort(key=lambda item: parse_iso(item["time"]), reverse=True)
-    return items
-
-
-def work_items() -> list[dict]:
-    dates = read_dates(WORKS_DATES)
-    items = []
-
-    for folder_name, category in (("Notes", "note"), ("Papers", "paper")):
-        folder = WORKS_DIR / folder_name
-        if not folder.exists():
-            continue
-
-        for path in sorted(folder.glob("*.md")):
-            explicit_key = f"{folder_name}/{path.name}"
-            legacy_key = path.name
-            date = dates.get(explicit_key) or dates.get(legacy_key)
+def build_items(dates: dict[str, str]) -> dict[str, list[dict]]:
+    result: dict[str, list[dict]] = {kind: [] for kind in KINDS}
+    for kind in KINDS:
+        for path in source_files(kind):
+            key = content_key(kind, path)
+            date = dates.get(key)
             if not date:
-                raise ValueError(f"missing date for _works/{explicit_key}")
+                raise ValueError(f"missing date for {key}")
             parse_iso(date)
+            content = path.read_text(encoding="utf-8").strip()
+            if not content:
+                raise ValueError(f"empty content: {key}")
+            rel = path.relative_to(SOURCE_DIRS[kind]).as_posix()
+            if kind == "blogs":
+                result[kind].append({
+                    "path": rel,
+                    "title": title_of(content, path.stem),
+                    "excerpt": plain_excerpt(content),
+                    "modified": date,
+                })
+            elif kind == "thoughts":
+                title, excerpt = thought_preview_fields(content)
+                result[kind].append({
+                    "id": stable_id(f"thought:{rel}"),
+                    "path": rel,
+                    "title": title,
+                    "excerpt": excerpt,
+                    "content": content,
+                    "time": date,
+                })
+            else:
+                result[kind].append({
+                    "id": stable_id(f"{kind}:{rel}"),
+                    "path": rel,
+                    "title": title_of(content, path.stem),
+                    "content": content,
+                    "time": date,
+                })
+    for kind in KINDS:
+        field = "modified" if kind == "blogs" else "time"
+        result[kind].sort(key=lambda item: parse_iso(item[field]), reverse=True)
+    return result
 
-            content = path.read_text(encoding="utf-8")
-            if not content.strip():
-                raise ValueError(f"empty work: _works/{explicit_key}")
 
-            title = path.stem
-            for line in content.splitlines():
-                if line.startswith("# "):
-                    title = line[2:].strip() or title
-                    break
-
-            items.append({
-                "id": stable_id(f"work:{explicit_key}"),
-                "title": title,
-                "category": category,
-                "content": content,
-                "time": date,
-            })
-
-    items.sort(key=lambda item: parse_iso(item["time"]), reverse=True)
-    return items
-
-
-def expected_data() -> dict[Path, dict]:
-    return {
-        THOUGHTS_DATA: {"thoughts": thought_items()},
-        WORKS_DATA: {"works": work_items()},
-    }
+def expected_data(write_dates: bool) -> dict[Path, dict]:
+    items = build_items(ensure_dates(write=write_dates))
+    return {DATA_FILES[kind]: {kind: items[kind]} for kind in KINDS}
 
 
 def build(check_only: bool = False) -> bool:
     ok = True
-    for path, value in expected_data().items():
+    for path, value in expected_data(write_dates=not check_only).items():
         expected = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
         actual = path.read_text(encoding="utf-8") if path.exists() else ""
         if actual == expected:
             print(f"OK   {path.relative_to(ROOT)}")
-            continue
-        if check_only:
+        elif check_only:
             print(f"FAIL {path.relative_to(ROOT)} is out of date")
             ok = False
         else:
@@ -181,14 +214,14 @@ def build(check_only: bool = False) -> bool:
 class AssetParser(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.refs: list[tuple[str, str]] = []
+        self.refs: list[str] = []
 
     def handle_starttag(self, tag: str, attrs):
         attrs = dict(attrs)
         if tag in {"a", "link"} and attrs.get("href"):
-            self.refs.append(("href", attrs["href"]))
+            self.refs.append(attrs["href"])
         if tag in {"script", "img"} and attrs.get("src"):
-            self.refs.append(("src", attrs["src"]))
+            self.refs.append(attrs["src"])
 
 
 def is_external_ref(ref: str) -> bool:
@@ -203,7 +236,7 @@ def check_assets() -> list[str]:
     for html_path in sorted(ROOT.glob("*.html")):
         parser = AssetParser()
         parser.feed(html_path.read_text(encoding="utf-8"))
-        for _, ref in parser.refs:
+        for ref in parser.refs:
             if is_external_ref(ref):
                 continue
             clean = ref.split("#", 1)[0].split("?", 1)[0]
@@ -223,181 +256,42 @@ def check_assets() -> list[str]:
     return errors
 
 
-def check_dates() -> list[str]:
-    errors: list[str] = []
-    thought_dates = read_dates(THOUGHTS_DATES)
-    work_dates = read_dates(WORKS_DATES)
-
-    thought_names = {p.name for p in THOUGHTS_DIR.glob("*.txt")} if THOUGHTS_DIR.exists() else set()
-    extra_thought_dates = set(thought_dates) - thought_names
-    for key in sorted(extra_thought_dates):
-        errors.append(f"orphan thought date: {key}")
-
-    valid_work_keys = set()
-    valid_legacy_keys = set()
-    for folder_name in ("Notes", "Papers"):
-        folder = WORKS_DIR / folder_name
-        if not folder.exists():
-            continue
-        for path in folder.glob("*.md"):
-            valid_work_keys.add(f"{folder_name}/{path.name}")
-            valid_legacy_keys.add(path.name)
-
-    for key in sorted(work_dates):
-        if key not in valid_work_keys and key not in valid_legacy_keys:
-            errors.append(f"orphan work date: {key}")
-    return errors
-
-
 def check() -> bool:
     errors: list[str] = []
     try:
         if not build(check_only=True):
             errors.append("generated data is not synchronized")
-        errors.extend(check_dates())
         errors.extend(check_assets())
-
-        thoughts = load_json(THOUGHTS_DATA, {}).get("thoughts", [])
-        works = load_json(WORKS_DATA, {}).get("works", [])
-        ids = [item.get("id") for item in thoughts + works]
+        ids: list[int] = []
+        for kind in ("notes", "works", "thoughts"):
+            payload = load_json(DATA_FILES[kind], {}).get(kind, [])
+            ids.extend(item.get("id") for item in payload)
         if len(ids) != len(set(ids)):
             errors.append("duplicate generated IDs")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(str(exc))
-
     if errors:
         for error in errors:
             print(f"ERROR {error}", file=sys.stderr)
         return False
-
     print("Site check passed.")
     return True
 
 
-def next_thought_name() -> str:
-    numbers = []
-    for path in THOUGHTS_DIR.glob("*.txt"):
-        if path.stem.isdigit():
-            numbers.append(int(path.stem))
-    return f"{(max(numbers, default=0) + 1):03d}.txt"
-
-
-def save_date(path: Path, key: str, value: str) -> None:
-    parse_iso(value)
-    dates = read_dates(path)
-    dates[key] = value
-    write_json(path, dates)
-
-
-def add_thought(text: str, time_value: str) -> None:
-    text = text.strip()
-    if not text:
-        raise ValueError("thought text cannot be empty")
-    existing = {p.read_text(encoding="utf-8").strip() for p in THOUGHTS_DIR.glob("*.txt")}
-    if text in existing:
-        raise ValueError("duplicate thought content")
-
-    THOUGHTS_DIR.mkdir(parents=True, exist_ok=True)
-    name = next_thought_name()
-    (THOUGHTS_DIR / name).write_text(text + "\n", encoding="utf-8")
-    save_date(THOUGHTS_DATES, name, time_value)
-    build()
-    print(f"Added _thoughts/{name}")
-
-
-def safe_title(title: str) -> str:
-    title = title.strip()
-    if not title:
-        raise ValueError("title cannot be empty")
-    if "/" in title or "\x00" in title or title in {".", ".."}:
-        raise ValueError("title cannot contain '/' or NUL")
-    return title
-
-
-def add_work(category: str, title: str, source: Path, time_value: str) -> None:
-    title = safe_title(title)
-    if not source.exists() or not source.is_file():
-        raise ValueError(f"content file not found: {source}")
-    content = source.read_text(encoding="utf-8")
-    if not content.strip():
-        raise ValueError("content file is empty")
-
-    folder_name = "Notes" if category == "note" else "Papers"
-    folder = WORKS_DIR / folder_name
-    folder.mkdir(parents=True, exist_ok=True)
-    target = folder / f"{title}.md"
-    if target.exists():
-        raise ValueError(f"work already exists: {target.relative_to(ROOT)}")
-    shutil.copyfile(source, target)
-
-    save_date(WORKS_DATES, f"{folder_name}/{target.name}", time_value)
-    build()
-    print(f"Added {target.relative_to(ROOT)}")
-
-
-def migrate_work_dates() -> None:
-    dates = read_dates(WORKS_DATES)
-    changed = False
-    for folder_name in ("Notes", "Papers"):
-        folder = WORKS_DIR / folder_name
-        if not folder.exists():
-            continue
-        for path in folder.glob("*.md"):
-            explicit = f"{folder_name}/{path.name}"
-            if explicit in dates:
-                continue
-            if path.name in dates:
-                dates[explicit] = dates.pop(path.name)
-                changed = True
-    if changed:
-        write_json(WORKS_DATES, dates)
-        print("Migrated work date keys to category/filename format.")
-    else:
-        print("Work date keys already normalized.")
-
-
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Manage personal-site content")
+    parser = argparse.ArgumentParser(description="Manage synchronized personal-site content")
     sub = parser.add_subparsers(dest="command", required=True)
-
-    sub.add_parser("build", help="regenerate data/*.json from source content")
-    sub.add_parser("check", help="validate generated data, dates, and local asset refs")
-    sub.add_parser("migrate-dates", help="normalize legacy work date keys")
-
-    p_thought = sub.add_parser("add-thought", help="add a thought and rebuild data")
-    p_thought.add_argument("text")
-    p_thought.add_argument("--time", default=utc_now_iso())
-
-    for name, category in (("add-note", "note"), ("add-paper", "paper")):
-        p_work = sub.add_parser(name, help=f"add a {category} from a Markdown file")
-        p_work.add_argument("title")
-        p_work.add_argument("file", type=Path)
-        p_work.add_argument("--time", default=utc_now_iso())
-
+    sub.add_parser("build", help="regenerate data/*.json from Markdown mirrors")
+    sub.add_parser("check", help="validate generated data and local asset refs")
     args = parser.parse_args(argv)
-
     try:
         if args.command == "build":
             return 0 if build() else 1
         if args.command == "check":
             return 0 if check() else 1
-        if args.command == "migrate-dates":
-            migrate_work_dates()
-            build()
-            return 0
-        if args.command == "add-thought":
-            add_thought(args.text, args.time)
-            return 0
-        if args.command == "add-note":
-            add_work("note", args.title, args.file, args.time)
-            return 0
-        if args.command == "add-paper":
-            add_work("paper", args.title, args.file, args.time)
-            return 0
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
-
     return 1
 
 

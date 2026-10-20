@@ -5,9 +5,11 @@ on:
   push:
     branches: [main]
     paths:
-      - '_thoughts/**'
-      - '_works/**'
-      - '_dates/**'
+      - 'blogs/**'
+      - 'notes/**'
+      - 'works/**'
+      - 'thoughts/**'
+      - '_dates/content_dates.json'
       - 'scripts/site.py'
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/thoughts.json data/works.json
+          git add data/blogs.json data/notes.json data/works.json data/thoughts.json _dates/content_dates.json
           if git diff --cached --quiet; then
             echo "Generated data already up to date."
           else

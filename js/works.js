@@ -652,8 +652,19 @@
       works = await SiteStore.loadWorks();
 
       if (!works.length) {
+        currentEl.textContent = '00';
+        totalEl.textContent = '00';
+        categoryEl.textContent = 'WORK';
         titleEl.textContent = '暂无作品';
+        dateEl.textContent = '';
         summaryEl.textContent = 'No works yet.';
+        featureCoverLabel.textContent = 'WORK';
+        featureCoverYear.textContent = '—';
+        featureCoverTitle.textContent = 'No works yet';
+        progress.innerHTML = '';
+        deck.innerHTML = '';
+        readBtn.hidden = true;
+        readBtn.style.display = 'none';
         return;
       }
 

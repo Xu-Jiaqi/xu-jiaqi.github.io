@@ -1,5 +1,5 @@
 // Local static JSON store with sessionStorage cache.
-// data/*.json is generated from _thoughts/_works by scripts/site.py.
+// data/*.json is generated from synchronized Markdown folders by scripts/site.py.
 
 const CACHE_KEY = 'site_data_v1';
 const CACHE_TTL = 5 * 60 * 1000;
@@ -51,11 +51,12 @@ async function loadDataset(name) {
 }
 
 async function preload() {
-  await Promise.allSettled([loadDataset('thoughts'), loadDataset('works')]);
+  await Promise.allSettled([loadDataset('thoughts'), loadDataset('notes'), loadDataset('works')]);
 }
 
 window.SiteStore = {
   loadThoughts: () => loadDataset('thoughts'),
+  loadNotes: () => loadDataset('notes'),
   loadWorks: () => loadDataset('works'),
   preload
 };

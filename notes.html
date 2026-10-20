@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes - Xu-Jiaqi</title>
+  <meta name="description" content="Notes and excerpts by Xu-Jiaqi.">
+  <link rel="stylesheet" href="css/style.css?v=20261021-profile1">
+</head>
+<body class="blogs-page">
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Xu-Jiaqi</a>
+      <div class="nav-links">
+        <a href="profile.html">Profile</a>
+        <a href="thoughts.html">Thoughts</a>
+        <a href="blogs.html">Blogs</a>
+        <a href="notes.html" class="active">Notes</a>
+        <a href="works.html">Works</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="blogs-main">
+    <section class="page-header blogs-header">
+      <h1>Notes</h1>
+      <p>Longer notes, excerpts and fragments worth keeping.</p>
+    </section>
+    <section class="blogs-layout">
+      <aside class="blogs-index" aria-label="Notes index">
+        <div class="blogs-index-head"><span>Index</span><span id="note-count">0</span></div>
+        <div class="blogs-list" id="note-list"><div class="blogs-loading">Loading…</div></div>
+      </aside>
+      <article class="blog-reader">
+        <div class="blog-reader-meta" id="note-reader-meta"></div>
+        <div class="blog-article works-article-body" id="note-article">
+          <p class="blogs-loading">Select a note.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer><p>&copy; 2026 Xu-Jiaqi</p></footer>
+  <script src="js/showdown.min.js"></script>
+  <script src="js/dompurify.min.js"></script>
+  <script>
+    window.__mathjaxWaiters = window.__mathjaxWaiters || [];
+    window.MathJax = {
+      loader: { load: ['[tex]/ams'] },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true, processEnvironments: true,
+        packages: { '[+]': ['ams'] }
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+    };
+    (function(){
+      var urls=['https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js','https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js'];
+      function ready(){var q=window.__mathjaxWaiters||[]; while(q.length){try{q.shift()();}catch(e){}}}
+      function load(i){if(i>=urls.length)return;var s=document.createElement('script');s.src=urls[i];s.async=true;s.onload=ready;s.onerror=function(){s.remove();load(i+1)};document.head.appendChild(s)}
+      load(0);
+    })();
+  </script>
+  <script src="js/notes.js?v=20261021-profile1"></script>
+</body>
+</html>
