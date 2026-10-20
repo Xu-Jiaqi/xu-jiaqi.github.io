@@ -1,0 +1,10 @@
+{
+  "blogs": [
+    {
+      "path": "QueryBasedCompositer.md",
+      "title": "Transformer is a Query Based Compositer",
+      "excerpt": "Typically and historically, we have always considered Self-Attention as a query-like component. With query , attention module computes its \"similarity\" (actually activity) to ea…",
+      "modified": "2026-10-20T14:47:40Z"
+    }
+  ]
+}

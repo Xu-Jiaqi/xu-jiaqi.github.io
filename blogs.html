@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blogs - Xu-Jiaqi</title>
+  <meta name="description" content="Long-form notes and research by Xu-Jiaqi.">
+  <link rel="stylesheet" href="css/style.css?v=20261020-blogs2">
+</head>
+<body class="blogs-page">
+  <header>
+    <nav>
+      <a href="index.html" class="logo">Xu-Jiaqi</a>
+      <div class="nav-links">
+        <a href="profile.html">Profile</a>
+        <a href="thoughts.html">Thoughts</a>
+        <a href="blogs.html" class="active">Blogs</a>
+        <a href="works.html">Works</a>
+        <a href="https://nansea.xyz/chat/">Chat</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="blogs-main">
+    <section class="page-header blogs-header">
+      <h1>Blogs</h1>
+      <p>Long-form notes, research and unfinished arguments.</p>
+    </section>
+
+    <section class="blogs-layout">
+      <aside class="blogs-index" aria-label="Blog index">
+        <div class="blogs-index-head">
+          <span>Index</span>
+          <span id="blog-count">0</span>
+        </div>
+        <div class="blogs-list" id="blog-list">
+          <div class="blogs-loading">Loading…</div>
+        </div>
+      </aside>
+
+      <article class="blog-reader">
+        <div class="blog-reader-meta" id="blog-reader-meta"></div>
+        <div class="blog-article works-article-body" id="blog-article">
+          <p class="blogs-loading">Select an article.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Xu-Jiaqi</p>
+  </footer>
+
+  <script src="js/showdown.min.js"></script>
+  <script src="js/dompurify.min.js"></script>
+  <script>
+    window.__mathjaxWaiters = window.__mathjaxWaiters || [];
+    window.MathJax = {
+      loader: { load: ['[tex]/ams'] },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: { '[+]': ['ams'] }
+      },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+    };
+    (function loadMathJax() {
+      var candidates = [
+        'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js'
+      ];
+      function ready() {
+        var waiters = window.__mathjaxWaiters || [];
+        while (waiters.length) {
+          try { waiters.shift()(); } catch (e) {}
+        }
+      }
+      function load(i) {
+        if (i >= candidates.length) return;
+        var s = document.createElement('script');
+        s.src = candidates[i];
+        s.async = true;
+        s.onload = ready;
+        s.onerror = function () { s.remove(); load(i + 1); };
+        document.head.appendChild(s);
+      }
+      load(0);
+    })();
+  </script>
+  <script src="js/blogs.js?v=20261020-blogs2"></script>
+</body>
+</html>
