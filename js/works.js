@@ -40,6 +40,7 @@
   const dateEl = document.getElementById('work-date');
   const summaryEl = document.getElementById('work-summary');
   const readBtn = document.getElementById('work-read');
+  const readBtnLabel = readBtn.querySelector('span:last-child');
 
   const articleShell = document.getElementById('works-article-shell');
   const articleBody = document.getElementById('article-body');
@@ -99,10 +100,12 @@
   }
 
   function categoryLabel(work) {
+    if (work.format === 'pdf') return 'PDF';
     return (work.category || 'work').toUpperCase();
   }
 
   function summaryOf(work) {
+    if (work.format === 'pdf') return '';
     const plain = (work.content || '')
       .replace(/```[\s\S]*?```/g, ' ')
       .replace(/[#>*_\[\]()$\\-]/g, ' ')
@@ -401,7 +404,14 @@
     featureCoverTitle.textContent = work.title || 'Untitled';
     featureCover.dataset.variant = String(index % 5);
 
-    if (!articleShell.hidden) renderArticle();
+    readBtn.hidden = false;
+    readBtn.style.display = '';
+    readBtnLabel.textContent = work.format === 'pdf' ? '打开 PDF' : '阅读正文';
+
+    if (!articleShell.hidden) {
+      if (work.format === 'pdf') articleShell.hidden = true;
+      else renderArticle();
+    }
   }
 
   function runRingAnimation() {
@@ -627,6 +637,19 @@
   }
 
   readBtn.addEventListener('click', () => {
+    const work = works[selectedIndex];
+    if (!work) return;
+
+    if (work.format === 'pdf') {
+      const relativeUrl = String(work.url || ('works/' + work.path))
+        .split('/')
+        .map(encodeURIComponent)
+        .join('/');
+      const pdfUrl = new URL(relativeUrl, window.location.href).href;
+      window.open(pdfUrl, '_blank', 'noopener');
+      return;
+    }
+
     renderArticle();
     articleShell.hidden = false;
     articleShell.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -12,11 +12,11 @@
     ├── works/
     └── thoughts/
 
-四个目录都只同步 Markdown (*.md)。
+同步规则：blogs/、notes/、thoughts/ 只同步 Markdown (*.md)；works/ 同步 Markdown (*.md) 和 PDF (*.pdf / *.PDF)。
 
 - blogs/：完整博客、研究长文
 - notes/：长笔记、摘记、保留片段
-- works/：真正的项目与作品
+- works/：真正的项目与作品；可直接放 Markdown 或 PDF
 - thoughts/：短想法和随手记录
 
 网页仓库中的同名目录是同步镜像，不应作为日常编辑入口。
@@ -25,12 +25,12 @@
 
 nansea-ms 上运行 profile-content-sync.service。它递归监听 ~/Documents/Share/Profile。文件发生变化后：
 
-1. 仅同步四个目录中的 *.md
+1. 同步 Blogs / Notes / Thoughts 中的 *.md，以及 Works 中的 *.md / *.pdf / *.PDF
 2. 镜像到 cloud:/home/ubuntu/profile/{blogs,notes,works,thoughts}/
 3. 运行 python3 scripts/site.py build
 4. 更新 data/blogs.json、data/notes.json、data/works.json、data/thoughts.json
 
-删除本地 Markdown 也会同步删除网页镜像。
+删除本地对应内容文件也会同步删除网页镜像。
 
 手动同步：
 

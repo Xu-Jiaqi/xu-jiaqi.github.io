@@ -58,7 +58,11 @@ def source_files(kind: str) -> list[Path]:
     root = SOURCE_DIRS[kind]
     if not root.exists():
         return []
-    return sorted(path for path in root.rglob("*.md") if path.is_file())
+    suffixes = {".md", ".pdf"} if kind == "works" else {".md"}
+    return sorted(
+        path for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in suffixes
+    )
 
 
 def content_key(kind: str, path: Path) -> str:
@@ -154,10 +158,11 @@ def build_items(dates: dict[str, str]) -> dict[str, list[dict]]:
             if not date:
                 raise ValueError(f"missing date for {key}")
             parse_iso(date)
-            content = path.read_text(encoding="utf-8").strip()
-            if not content:
-                raise ValueError(f"empty content: {key}")
             rel = path.relative_to(SOURCE_DIRS[kind]).as_posix()
+            is_pdf = kind == "works" and path.suffix.lower() == ".pdf"
+            content = "" if is_pdf else path.read_text(encoding="utf-8").strip()
+            if not is_pdf and not content:
+                raise ValueError(f"empty content: {key}")
             if kind == "blogs":
                 result[kind].append({
                     "path": rel,
@@ -175,14 +180,26 @@ def build_items(dates: dict[str, str]) -> dict[str, list[dict]]:
                     "content": content,
                     "time": date,
                 })
-            else:
+            elif kind == "works" and is_pdf:
                 result[kind].append({
+                    "id": stable_id(f"work:{rel}"),
+                    "path": rel,
+                    "title": path.stem,
+                    "format": "pdf",
+                    "url": f"works/{rel}",
+                    "time": date,
+                })
+            else:
+                item = {
                     "id": stable_id(f"{kind}:{rel}"),
                     "path": rel,
                     "title": title_of(content, path.stem),
                     "content": content,
                     "time": date,
-                })
+                }
+                if kind == "works":
+                    item["format"] = "md"
+                result[kind].append(item)
     for kind in KINDS:
         field = "modified" if kind == "blogs" else "time"
         result[kind].sort(key=lambda item: parse_iso(item[field]), reverse=True)
